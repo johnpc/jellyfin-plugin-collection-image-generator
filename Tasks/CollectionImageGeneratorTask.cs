@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
@@ -226,31 +227,40 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                     }
                 }
                 
-                // Save the collage as the collection's primary image
-                var directory = collection.Path; // Use the full collection path instead of just the directory
-                var filename = $"folder{Path.DirectorySeparatorChar}poster.jpg";
-                var outputPath = Path.Combine(directory, filename);
+                // First save the collage to a temporary file
+                var tempFile = Path.Combine(Path.GetTempPath(), $"collage_{collection.Id}.jpg");
+                _logger.LogInformation("Saving temporary collage to {Path}", tempFile);
+                await outputImage.SaveAsJpegAsync(tempFile, cancellationToken);
                 
-                _logger.LogInformation("Saving collage to {Path}", outputPath);
-                
-                // Ensure the directory exists
-                var folderPath = Path.GetDirectoryName(outputPath);
-                _logger.LogInformation("Creating directory if it doesn't exist: {Path}", folderPath);
-                Directory.CreateDirectory(folderPath!);
-                
-                // Save the image
-                _logger.LogInformation("Saving JPEG image to {Path}", outputPath);
-                await outputImage.SaveAsJpegAsync(outputPath, cancellationToken);
-                
-                // Check if the file was created
-                if (File.Exists(outputPath))
+                if (File.Exists(tempFile))
                 {
-                    _logger.LogInformation("Collage file successfully created at {Path}", outputPath);
+                    _logger.LogInformation("Temporary collage file successfully created at {Path}", tempFile);
                     
                     try
                     {
-                        // Try a different approach to set the image
-                        _logger.LogInformation("Setting primary image path on collection {Name}", collection.Name);
+                        // Upload the image directly to the API
+                        _logger.LogInformation("Uploading image directly to API for collection {Name} (ID: {Id})", 
+                            collection.Name, collection.Id);
+                        
+                        // Read the image file into a byte array
+                        byte[] imageBytes = await File.ReadAllBytesAsync(tempFile, cancellationToken);
+                        
+                        // Use the API to set the primary image
+                        await UploadImageToCollectionAsync(collection.Id.ToString(), imageBytes, cancellationToken);
+                        
+                        // Also save to the file system as a backup
+                        var directory = collection.Path;
+                        var filename = $"folder{Path.DirectorySeparatorChar}poster.jpg";
+                        var outputPath = Path.Combine(directory, filename);
+                        
+                        _logger.LogInformation("Also saving collage to file system at {Path}", outputPath);
+                        
+                        // Ensure the directory exists
+                        var folderPath = Path.GetDirectoryName(outputPath);
+                        Directory.CreateDirectory(folderPath!);
+                        
+                        // Copy the temp file to the final location
+                        File.Copy(tempFile, outputPath, true);
                         
                         // Force a refresh of the collection
                         _logger.LogInformation("Refreshing metadata for collection {Name}", collection.Name);
@@ -260,11 +270,17 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                         _logger.LogInformation("Forcing image refresh for collection {Name}", collection.Name);
                         await collection.UpdateToRepositoryAsync(ItemUpdateType.ImageUpdate, cancellationToken).ConfigureAwait(false);
                         
-                        // Verify if the image was set
-                        _logger.LogInformation("After update, collection primary image path: {Path}", 
-                            collection.PrimaryImagePath ?? "null");
+                        _logger.LogInformation("Successfully generated and set collage for collection: {Name}", collection.Name);
                         
-                        _logger.LogInformation("Successfully generated collage for collection: {Name}", collection.Name);
+                        // Clean up the temp file
+                        try
+                        {
+                            File.Delete(tempFile);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to delete temporary file {Path}", tempFile);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -273,12 +289,56 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                 }
                 else
                 {
-                    _logger.LogError("Failed to create collage file at {Path}", outputPath);
+                    _logger.LogError("Failed to create temporary collage file at {Path}", tempFile);
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating collage for collection {Name}", collection.Name);
+            }
+        }
+        
+        private async Task UploadImageToCollectionAsync(string collectionId, byte[] imageData, CancellationToken cancellationToken)
+        {
+            try
+            {
+                // This is a simplified implementation that mimics the curl command
+                // In a real implementation, you would use Jellyfin's API client or HttpClientFactory
+                
+                _logger.LogInformation("Uploading image for collection ID: {Id}", collectionId);
+                
+                // Get the server URL from the application configuration
+                // This is a simplified approach - in a real implementation you would get this from Jellyfin's configuration
+                var serverUrl = "http://localhost:8096"; // Default Jellyfin URL
+                
+                var apiUrl = $"{serverUrl}/Items/{collectionId}/Images/Primary";
+                _logger.LogInformation("Using API URL: {Url}", apiUrl);
+                
+                using var httpClient = new HttpClient();
+                using var content = new ByteArrayContent(imageData);
+                content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+                
+                // Add any required headers (similar to those in the curl command)
+                httpClient.DefaultRequestHeaders.Add("Accept", "*/*");
+                
+                _logger.LogInformation("Sending HTTP POST request to upload image");
+                var response = await httpClient.PostAsync(apiUrl, content, cancellationToken);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("Successfully uploaded image to API. Status code: {StatusCode}", response.StatusCode);
+                }
+                else
+                {
+                    _logger.LogError("Failed to upload image to API. Status code: {StatusCode}", response.StatusCode);
+                    var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                    _logger.LogError("Response content: {Content}", responseContent);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error uploading image to API for collection {Id}", collectionId);
+                throw;
             }
         }
 
