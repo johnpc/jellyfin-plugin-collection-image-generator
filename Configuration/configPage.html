@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Collection Image Generator</title>
+</head>
+<body>
+    <div id="CollectionImageGeneratorConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox">
+        <div data-role="content">
+            <div class="content-primary">
+                <form class="collectionImageGeneratorConfigForm">
+                    <div class="verticalSection verticalSection-first">
+                        <h2 class="sectionTitle">Collection Image Generator Settings</h2>
+                        
+                        <div class="inputContainer">
+                            <label class="inputLabel" for="maxImagesInCollage">Maximum Images in Collage</label>
+                            <input id="maxImagesInCollage" name="MaxImagesInCollage" type="number" min="1" max="9" is="emby-input" />
+                            <div class="fieldDescription">The maximum number of images to include in the collage (1-9)</div>
+                        </div>
+                        
+                        <div class="inputContainer">
+                            <label class="inputLabel" for="scheduledTaskTimeOfDay">Scheduled Task Time</label>
+                            <input id="scheduledTaskTimeOfDay" name="ScheduledTaskTimeOfDay" type="time" is="emby-input" />
+                            <div class="fieldDescription">The time of day to run the scheduled task (24-hour format)</div>
+                        </div>
+                        
+                        <div class="checkboxContainer">
+                            <label class="emby-checkbox-label">
+                                <input id="enableScheduledTask" name="EnableScheduledTask" type="checkbox" is="emby-checkbox" />
+                                <span>Enable Scheduled Task</span>
+                            </label>
+                        </div>
+                        
+                        <div>
+                            <button is="emby-button" type="button" class="raised button-submit block" id="runNowButton">
+                                <span>Generate Collection Images Now</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block">
+                            <span>Save</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <script>
+            var CollectionImageGeneratorConfig = {
+                pluginId: 'CollectionImageGenerator',
+                
+                loadConfiguration: function() {
+                    Dashboard.showLoadingMsg();
+                    
+                    ApiClient.getPluginConfiguration(CollectionImageGeneratorConfig.pluginId).then(function (config) {
+                        document.querySelector('#maxImagesInCollage').value = config.MaxImagesInCollage;
+                        document.querySelector('#scheduledTaskTimeOfDay').value = config.ScheduledTaskTimeOfDay;
+                        document.querySelector('#enableScheduledTask').checked = config.EnableScheduledTask;
+                        
+                        Dashboard.hideLoadingMsg();
+                    });
+                },
+                
+                saveConfiguration: function() {
+                    Dashboard.showLoadingMsg();
+                    
+                    ApiClient.getPluginConfiguration(CollectionImageGeneratorConfig.pluginId).then(function (config) {
+                        config.MaxImagesInCollage = parseInt(document.querySelector('#maxImagesInCollage').value);
+                        config.ScheduledTaskTimeOfDay = document.querySelector('#scheduledTaskTimeOfDay').value;
+                        config.EnableScheduledTask = document.querySelector('#enableScheduledTask').checked;
+                        
+                        ApiClient.updatePluginConfiguration(CollectionImageGeneratorConfig.pluginId, config).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                        });
+                    });
+                },
+                
+                runNow: function() {
+                    Dashboard.showLoadingMsg();
+                    
+                    ApiClient.getApiUrl('CollectionImageGenerator/Run').then(function (url) {
+                        fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Emby-Token': ApiClient.accessToken()
+                            }
+                        })
+                        .then(function() {
+                            Dashboard.hideLoadingMsg();
+                            Dashboard.alert('Collection image generation started');
+                        })
+                        .catch(function() {
+                            Dashboard.hideLoadingMsg();
+                            Dashboard.alert('Error starting collection image generation');
+                        });
+                    });
+                }
+            };
+            
+            document.querySelector('.collectionImageGeneratorConfigForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                CollectionImageGeneratorConfig.saveConfiguration();
+            });
+            
+            document.querySelector('#runNowButton').addEventListener('click', function() {
+                CollectionImageGeneratorConfig.runNow();
+            });
+            
+            CollectionImageGeneratorConfig.loadConfiguration();
+        </script>
+    </div>
+</body>
+</html>

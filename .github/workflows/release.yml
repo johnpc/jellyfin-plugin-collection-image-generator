@@ -1,0 +1,107 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write  # This is required for creating releases
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 6.0.x
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build
+      run: dotnet build --configuration Release --no-restore /p:TreatWarningsAsErrors=false
+    
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+    
+    - name: Create release directory
+      run: |
+        mkdir -p release
+        cp bin/Release/net6.0/Jellyfin.Plugin.CollectionImageGenerator.dll release/
+        cp Plugin.xml release/
+    
+    - name: Create zip file
+      run: |
+        cd release
+        zip -r ../collection-image-generator-${{ steps.get_version.outputs.VERSION }}.zip .
+        cd ..
+    
+    - name: Calculate checksum
+      id: calculate_checksum
+      run: |
+        CHECKSUM=$(md5sum collection-image-generator-${{ steps.get_version.outputs.VERSION }}.zip | awk '{ print $1 }')
+        echo "CHECKSUM=$CHECKSUM" >> $GITHUB_OUTPUT
+    
+    - name: Create manifest.json
+      run: |
+        cat > manifest.json << EOF
+        [
+          {
+            "guid": "e29b0e3d-f15e-47b9-9b3d-ed3df892e33d",
+            "name": "Collection Image Generator",
+            "overview": "Automatically generates collage images for collections without images",
+            "description": "A Jellyfin plugin that automatically generates collage images for collections without images. It runs as a scheduled task once per day and creates collages from movie/show posters within each collection.",
+            "owner": "jellyfin-collection-image-generator",
+            "category": "Metadata",
+            "versions": [
+              {
+                "version": "${{ steps.get_version.outputs.VERSION }}",
+                "changelog": "- See the full changelog at [GitHub](https://github.com/jellyfin-collection-image-generator/jellyfin-collection-image-generator/releases/tag/${{ steps.get_version.outputs.VERSION }})\n",
+                "targetAbi": "10.8.0.0",
+                "sourceUrl": "https://github.com/jellyfin-collection-image-generator/jellyfin-collection-image-generator/releases/download/${{ steps.get_version.outputs.VERSION }}/collection-image-generator-${{ steps.get_version.outputs.VERSION }}.zip",
+                "checksum": "${{ steps.calculate_checksum.outputs.CHECKSUM }}",
+                "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+              }
+            ]
+          }
+        ]
+        EOF
+    
+    - name: Create GitHub Release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          collection-image-generator-${{ steps.get_version.outputs.VERSION }}.zip
+          manifest.json
+        name: Collection Image Generator ${{ steps.get_version.outputs.VERSION }}
+        draft: false
+        prerelease: false
+        body: |
+          # Collection Image Generator ${{ steps.get_version.outputs.VERSION }}
+          
+          A Jellyfin plugin that automatically generates collage images for collections without images.
+          
+          ## Installation
+          
+          1. Download the zip file
+          2. In Jellyfin, go to Dashboard → Plugins → Catalog
+          3. Click on "..." and select "Install from file"
+          4. Select the downloaded zip file
+          5. Restart Jellyfin
+          
+          ## Features
+          
+          - Automatically scans for collections without images
+          - Creates collage images from movie/show posters within each collection
+          - Runs as a scheduled task once per day
+          - Configurable through the Jellyfin admin dashboard
+          - Supports manual execution through the configuration page
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

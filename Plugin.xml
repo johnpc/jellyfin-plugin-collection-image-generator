@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Plugin xmlns="http://schemas.mediabrowser.tv/metadata">
+  <Name>Collection Image Generator</Name>
+  <Description>Automatically generates collage images for collections without images</Description>
+  <Id>CollectionImageGenerator</Id>
+  <Version>1.0.0.0</Version>
+  <TargetAbi>10.8.0.0</TargetAbi>
+  <Owner>jellyfin-collection-image-generator</Owner>
+  <Category>Metadata</Category>
+  <RequiredVersion>10.8.0</RequiredVersion>
+  <Assembly>Jellyfin.Plugin.CollectionImageGenerator.dll</Assembly>
+</Plugin>
