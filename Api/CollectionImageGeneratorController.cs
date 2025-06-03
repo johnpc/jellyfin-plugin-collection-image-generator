@@ -2,9 +2,11 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.CollectionImageGenerator.Tasks;
+using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Library;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.CollectionImageGenerator.Api
 {
@@ -16,17 +18,23 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Api
     public class CollectionImageGeneratorController : ControllerBase
     {
         private readonly ILibraryManager _libraryManager;
-        private readonly CollectionImageGeneratorTask _task;
+        private readonly ICollectionManager _collectionManager;
+        private readonly ILoggerFactory _loggerFactory;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CollectionImageGeneratorController"/> class.
         /// </summary>
         /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
-        /// <param name="task">Instance of the <see cref="CollectionImageGeneratorTask"/> class.</param>
-        public CollectionImageGeneratorController(ILibraryManager libraryManager, CollectionImageGeneratorTask task)
+        /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
+        /// <param name="loggerFactory">Instance of the <see cref="ILoggerFactory"/> interface.</param>
+        public CollectionImageGeneratorController(
+            ILibraryManager libraryManager,
+            ICollectionManager collectionManager,
+            ILoggerFactory loggerFactory)
         {
             _libraryManager = libraryManager;
-            _task = task;
+            _collectionManager = collectionManager;
+            _loggerFactory = loggerFactory;
         }
 
         /// <summary>
@@ -38,7 +46,11 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Api
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         public async Task<ActionResult> RunTask()
         {
-            await _task.ExecuteAsync(new Progress<double>(), default).ConfigureAwait(false);
+            // Create a new instance of the task directly
+            var logger = _loggerFactory.CreateLogger<CollectionImageGeneratorTask>();
+            var task = new CollectionImageGeneratorTask(logger, _libraryManager, _collectionManager);
+            
+            await task.ExecuteAsync(new Progress<double>(), default).ConfigureAwait(false);
             return NoContent();
         }
     }
