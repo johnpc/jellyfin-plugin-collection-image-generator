@@ -1,0 +1,20 @@
+[
+  {
+    "guid": "e29b0e3d-f15e-47b9-9b3d-ed3df892e33d",
+    "name": "Collection Image Generator",
+    "overview": "Automatically generates collage images for collections without images",
+    "description": "A Jellyfin plugin that automatically generates collage images for collections without images. It runs as a scheduled task once per day and creates collages from movie/show posters within each collection.",
+    "owner": "jellyfin-collection-image-generator",
+    "category": "Metadata",
+    "versions": [
+      {
+        "version": "0.0.0.3",
+        "changelog": "- Initial release\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.3/collection-image-generator-0.0.0.3.zip",
+        "checksum": "e6bd902037560a0adc86a3d24a2159b7",
+        "timestamp": "2025-06-03T15:52:22Z"
+      }
+    ]
+  }
+]

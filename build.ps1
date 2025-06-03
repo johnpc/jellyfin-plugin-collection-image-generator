@@ -17,6 +17,8 @@ New-Item -Path $releaseDir -ItemType Directory
 
 # Copy files to release directory
 Copy-Item -Path "bin/Release/net6.0/Jellyfin.Plugin.CollectionImageGenerator.dll" -Destination $releaseDir
+Copy-Item -Path "bin/Release/net6.0/SixLabors.ImageSharp.dll" -Destination $releaseDir
+Copy-Item -Path "bin/Release/net6.0/SixLabors.ImageSharp.Drawing.dll" -Destination $releaseDir
 Copy-Item -Path "Plugin.xml" -Destination $releaseDir
 
 # Create zip file
