@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.CollectionImageGenerator.Tasks;
+using MediaBrowser.Controller.Collections;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
 
@@ -13,33 +15,37 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ScheduledTasks
     /// </summary>
     public class CollectionImageGeneratorScheduledTask : IScheduledTask, IConfigurableScheduledTask
     {
-        private readonly CollectionImageGeneratorTask _task;
         private readonly ILogger<CollectionImageGeneratorScheduledTask> _logger;
+        private readonly ILibraryManager _libraryManager;
+        private readonly ICollectionManager _collectionManager;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CollectionImageGeneratorScheduledTask"/> class.
         /// </summary>
-        /// <param name="task">Instance of the <see cref="CollectionImageGeneratorTask"/> class.</param>
         /// <param name="logger">Instance of the <see cref="ILogger{CollectionImageGeneratorScheduledTask}"/> interface.</param>
+        /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
+        /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
         public CollectionImageGeneratorScheduledTask(
-            CollectionImageGeneratorTask task,
-            ILogger<CollectionImageGeneratorScheduledTask> logger)
+            ILogger<CollectionImageGeneratorScheduledTask> logger,
+            ILibraryManager libraryManager,
+            ICollectionManager collectionManager)
         {
-            _task = task;
             _logger = logger;
+            _libraryManager = libraryManager;
+            _collectionManager = collectionManager;
         }
 
         /// <inheritdoc />
-        public string Name => _task.Name;
+        public string Name => "Generate Collection Images";
 
         /// <inheritdoc />
-        public string Key => _task.Key;
+        public string Key => "CollectionImageGeneratorTask";
 
         /// <inheritdoc />
-        public string Description => _task.Description;
+        public string Description => "Generates collage images for collections without images";
 
         /// <inheritdoc />
-        public string Category => _task.Category;
+        public string Category => "Library";
 
         /// <inheritdoc />
         public bool IsHidden => false;
@@ -53,13 +59,40 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ScheduledTasks
         /// <inheritdoc />
         public Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
         {
-            return _task.ExecuteAsync(progress, cancellationToken);
+            // Create a new logger for the task
+            var taskLogger = (ILogger<CollectionImageGeneratorTask>)LoggerFactory.Create(builder => 
+                builder.AddConsole()).CreateLogger<CollectionImageGeneratorTask>();
+                
+            var task = new CollectionImageGeneratorTask(taskLogger, _libraryManager, _collectionManager);
+            return task.ExecuteAsync(progress, cancellationToken);
         }
 
         /// <inheritdoc />
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
         {
-            return _task.GetDefaultTriggers();
+            var config = Plugin.Instance!.Configuration;
+            
+            if (config.EnableScheduledTask)
+            {
+                // Parse the time of day from configuration
+                if (TimeSpan.TryParse(config.ScheduledTaskTimeOfDay, out var time))
+                {
+                    yield return new TaskTriggerInfo
+                    {
+                        Type = TaskTriggerInfo.TriggerDaily,
+                        TimeOfDayTicks = time.Ticks
+                    };
+                }
+                else
+                {
+                    // Default to 3 AM if parsing fails
+                    yield return new TaskTriggerInfo
+                    {
+                        Type = TaskTriggerInfo.TriggerDaily,
+                        TimeOfDayTicks = TimeSpan.FromHours(3).Ticks
+                    };
+                }
+            }
         }
     }
 }
