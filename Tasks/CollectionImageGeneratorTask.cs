@@ -83,22 +83,37 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                     // Check if collection already has an image
                     if (string.IsNullOrEmpty(boxSet.PrimaryImagePath))
                     {
-                        _logger.LogInformation("Generating image for collection: {Name}", boxSet.Name);
+                        _logger.LogInformation("Generating image for collection: {Name} (ID: {Id})", boxSet.Name, boxSet.Id);
+                        _logger.LogInformation("Collection path: {Path}", boxSet.Path);
                         
                         // Get items in the collection
                         var collectionItems = boxSet.GetLinkedChildren();
+                        _logger.LogInformation("Collection {Name} has {Count} items", boxSet.Name, collectionItems.Count());
+                        
                         var itemsWithImages = collectionItems
                             .Where(i => !string.IsNullOrEmpty(i.PrimaryImagePath) && File.Exists(i.PrimaryImagePath))
                             .ToList();
 
+                        _logger.LogInformation("Collection {Name} has {Count} items with valid images", boxSet.Name, itemsWithImages.Count);
+                        
                         if (itemsWithImages.Count > 0)
                         {
+                            // Log the first few items with their image paths
+                            foreach (var item in itemsWithImages.Take(3))
+                            {
+                                _logger.LogInformation("Item in collection: {ItemName}, Image path: {ImagePath}", 
+                                    item.Name, item.PrimaryImagePath);
+                            }
+                            
                             // Take a sample of items for the collage
                             var sampleSize = Math.Min(config.MaxImagesInCollage, itemsWithImages.Count);
                             var sampleItems = itemsWithImages
                                 .OrderBy(_ => Guid.NewGuid()) // Randomize the order
                                 .Take(sampleSize)
                                 .ToList();
+                            
+                            _logger.LogInformation("Selected {Count} items for collage in collection {Name}", 
+                                sampleItems.Count, boxSet.Name);
 
                             // Generate and save the collage
                             await GenerateAndSaveCollageAsync(boxSet, sampleItems, cancellationToken).ConfigureAwait(false);
@@ -157,15 +172,22 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                 var imageCount = items.Count;
                 var (rows, cols) = GetGridDimensions(imageCount);
                 
+                _logger.LogInformation("Creating collage with {Count} images in a {Rows}x{Cols} grid for collection {Name}", 
+                    imageCount, rows, cols, collection.Name);
+                
                 // Create a new image with appropriate dimensions
                 const int targetWidth = 1000;
                 const int targetHeight = 1500;
+                
+                _logger.LogInformation("Creating output image with dimensions {Width}x{Height}", targetWidth, targetHeight);
                 
                 using var outputImage = new Image<Rgba32>(targetWidth, targetHeight);
                 
                 // Calculate the size of each poster in the grid
                 var posterWidth = targetWidth / cols;
                 var posterHeight = targetHeight / rows;
+                
+                _logger.LogInformation("Each poster will be sized {Width}x{Height}", posterWidth, posterHeight);
                 
                 // Load and place each poster image
                 for (var i = 0; i < imageCount; i++)
@@ -181,6 +203,8 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                     
                     try
                     {
+                        _logger.LogInformation("Loading image for item {ItemName} from {Path}", item.Name, item.PrimaryImagePath);
+                        
                         using var posterImage = await Image.LoadAsync<Rgba32>(item.PrimaryImagePath, cancellationToken);
                         
                         // Resize the poster to fit in the grid
@@ -189,6 +213,8 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                         // Calculate position
                         var x = col * posterWidth;
                         var y = row * posterHeight;
+                        
+                        _logger.LogInformation("Placing image for {ItemName} at position ({X},{Y})", item.Name, x, y);
                         
                         // Draw the poster onto the output image
                         outputImage.Mutate(ctx => ctx.DrawImage(posterImage, new Point(x, y), 1f));
@@ -204,16 +230,36 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                 var filename = $"folder{Path.DirectorySeparatorChar}poster.jpg";
                 var outputPath = Path.Combine(directory!, filename);
                 
+                _logger.LogInformation("Saving collage to {Path}", outputPath);
+                
                 // Ensure the directory exists
-                Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+                var folderPath = Path.GetDirectoryName(outputPath);
+                _logger.LogInformation("Creating directory if it doesn't exist: {Path}", folderPath);
+                Directory.CreateDirectory(folderPath!);
                 
                 // Save the image
+                _logger.LogInformation("Saving JPEG image to {Path}", outputPath);
                 await outputImage.SaveAsJpegAsync(outputPath, cancellationToken);
                 
-                // Refresh the collection to use the new image
-                await collection.RefreshMetadata(cancellationToken).ConfigureAwait(false);
-                
-                _logger.LogInformation("Successfully generated collage for collection: {Name}", collection.Name);
+                // Check if the file was created
+                if (File.Exists(outputPath))
+                {
+                    _logger.LogInformation("Collage file successfully created at {Path}", outputPath);
+                    
+                    // Refresh the collection to use the new image
+                    _logger.LogInformation("Refreshing metadata for collection {Name}", collection.Name);
+                    await collection.RefreshMetadata(cancellationToken).ConfigureAwait(false);
+                    
+                    // Verify if the image was set
+                    _logger.LogInformation("After refresh, collection primary image path: {Path}", 
+                        collection.PrimaryImagePath ?? "null");
+                    
+                    _logger.LogInformation("Successfully generated collage for collection: {Name}", collection.Name);
+                }
+                else
+                {
+                    _logger.LogError("Failed to create collage file at {Path}", outputPath);
+                }
             }
             catch (Exception ex)
             {

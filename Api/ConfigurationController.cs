@@ -50,8 +50,11 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Api
                 return BadRequest("Plugin instance is not available");
             }
 
+            // Update the plugin configuration
             Plugin.Instance.Configuration = configuration;
-            _configurationManager.SaveConfiguration(Plugin.Instance.ConfigurationFileName, configuration);
+            
+            // Save the configuration directly using the plugin's SaveConfiguration method
+            Plugin.Instance.SaveConfiguration();
 
             return NoContent();
         }
