@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
@@ -11,6 +10,7 @@ using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
@@ -28,6 +28,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
         private readonly ILogger<CollectionImageGeneratorTask> _logger;
         private readonly ILibraryManager _libraryManager;
         private readonly ICollectionManager _collectionManager;
+        private readonly IProviderManager _providerManager;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CollectionImageGeneratorTask"/> class.
@@ -35,14 +36,17 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
         /// <param name="logger">Instance of the <see cref="ILogger{CollectionImageGeneratorTask}"/> interface.</param>
         /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
         /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
+        /// <param name="providerManager">Instance of the <see cref="IProviderManager"/> interface.</param>
         public CollectionImageGeneratorTask(
             ILogger<CollectionImageGeneratorTask> logger,
             ILibraryManager libraryManager,
-            ICollectionManager collectionManager)
+            ICollectionManager collectionManager,
+            IProviderManager providerManager)
         {
             _logger = logger;
             _libraryManager = libraryManager;
             _collectionManager = collectionManager;
+            _providerManager = providerManager;
         }
 
         /// <inheritdoc />
@@ -238,22 +242,12 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                     
                     try
                     {
-                        // Upload the image directly to the API
-                        _logger.LogInformation("Uploading image directly to API for collection {Name} (ID: {Id})", 
-                            collection.Name, collection.Id);
-                        
-                        // Read the image file into a byte array
-                        byte[] imageBytes = await File.ReadAllBytesAsync(tempFile, cancellationToken);
-                        
-                        // Use the API to set the primary image
-                        await UploadImageToCollectionAsync(collection.Id.ToString(), imageBytes, cancellationToken);
-                        
-                        // Also save to the file system as a backup
+                        // Save to the file system first
                         var directory = collection.Path;
                         var filename = $"folder{Path.DirectorySeparatorChar}poster.jpg";
                         var outputPath = Path.Combine(directory, filename);
                         
-                        _logger.LogInformation("Also saving collage to file system at {Path}", outputPath);
+                        _logger.LogInformation("Saving collage to file system at {Path}", outputPath);
                         
                         // Ensure the directory exists
                         var folderPath = Path.GetDirectoryName(outputPath);
@@ -261,6 +255,15 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                         
                         // Copy the temp file to the final location
                         File.Copy(tempFile, outputPath, true);
+                        
+                        // Use Jellyfin's provider manager to set the image
+                        _logger.LogInformation("Setting primary image for collection {Name} using provider manager", collection.Name);
+                        
+                        // Read the image file into a byte array
+                        byte[] imageBytes = await File.ReadAllBytesAsync(tempFile, cancellationToken);
+                        
+                        // Set the image using the provider manager
+                        await SetCollectionImageAsync(collection, imageBytes, cancellationToken);
                         
                         // Force a refresh of the collection
                         _logger.LogInformation("Refreshing metadata for collection {Name}", collection.Name);
@@ -298,46 +301,24 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
             }
         }
         
-        private async Task UploadImageToCollectionAsync(string collectionId, byte[] imageData, CancellationToken cancellationToken)
+        private async Task SetCollectionImageAsync(BoxSet collection, byte[] imageData, CancellationToken cancellationToken)
         {
             try
             {
-                // This is a simplified implementation that mimics the curl command
-                // In a real implementation, you would use Jellyfin's API client or HttpClientFactory
+                _logger.LogInformation("Setting primary image for collection {Name} (ID: {Id})", collection.Name, collection.Id);
                 
-                _logger.LogInformation("Uploading image for collection ID: {Id}", collectionId);
+                // Use Jellyfin's built-in provider manager to save the image
+                // This is the proper way to set images within Jellyfin
+                string tempPath = Path.GetTempFileName();
+                File.WriteAllBytes(tempPath, imageData);
+                await _providerManager.SaveImage(collection, tempPath, MediaBrowser.Model.Entities.ImageType.Primary, 0, cancellationToken);
+                File.Delete(tempPath);
                 
-                // Get the server URL from the application configuration
-                // This is a simplified approach - in a real implementation you would get this from Jellyfin's configuration
-                var serverUrl = "http://localhost:8096"; // Default Jellyfin URL
-                
-                var apiUrl = $"{serverUrl}/Items/{collectionId}/Images/Primary";
-                _logger.LogInformation("Using API URL: {Url}", apiUrl);
-                
-                using var httpClient = new HttpClient();
-                using var content = new ByteArrayContent(imageData);
-                content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
-                
-                // Add any required headers (similar to those in the curl command)
-                httpClient.DefaultRequestHeaders.Add("Accept", "*/*");
-                
-                _logger.LogInformation("Sending HTTP POST request to upload image");
-                var response = await httpClient.PostAsync(apiUrl, content, cancellationToken);
-                
-                if (response.IsSuccessStatusCode)
-                {
-                    _logger.LogInformation("Successfully uploaded image to API. Status code: {StatusCode}", response.StatusCode);
-                }
-                else
-                {
-                    _logger.LogError("Failed to upload image to API. Status code: {StatusCode}", response.StatusCode);
-                    var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                    _logger.LogError("Response content: {Content}", responseContent);
-                }
+                _logger.LogInformation("Successfully set primary image for collection {Name}", collection.Name);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error uploading image to API for collection {Id}", collectionId);
+                _logger.LogError(ex, "Error setting primary image for collection {Name}", collection.Name);
                 throw;
             }
         }

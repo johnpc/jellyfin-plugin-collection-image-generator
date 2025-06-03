@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Jellyfin.Plugin.CollectionImageGenerator.Tasks;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
 
@@ -18,6 +19,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ScheduledTasks
         private readonly ILogger<CollectionImageGeneratorScheduledTask> _logger;
         private readonly ILibraryManager _libraryManager;
         private readonly ICollectionManager _collectionManager;
+        private readonly IProviderManager _providerManager;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CollectionImageGeneratorScheduledTask"/> class.
@@ -25,14 +27,17 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ScheduledTasks
         /// <param name="logger">Instance of the <see cref="ILogger{CollectionImageGeneratorScheduledTask}"/> interface.</param>
         /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
         /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
+        /// <param name="providerManager">Instance of the <see cref="IProviderManager"/> interface.</param>
         public CollectionImageGeneratorScheduledTask(
             ILogger<CollectionImageGeneratorScheduledTask> logger,
             ILibraryManager libraryManager,
-            ICollectionManager collectionManager)
+            ICollectionManager collectionManager,
+            IProviderManager providerManager)
         {
             _logger = logger;
             _libraryManager = libraryManager;
             _collectionManager = collectionManager;
+            _providerManager = providerManager;
         }
 
         /// <inheritdoc />
@@ -63,7 +68,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ScheduledTasks
             var taskLogger = (ILogger<CollectionImageGeneratorTask>)LoggerFactory.Create(builder => 
                 builder.AddConsole()).CreateLogger<CollectionImageGeneratorTask>();
                 
-            var task = new CollectionImageGeneratorTask(taskLogger, _libraryManager, _collectionManager);
+            var task = new CollectionImageGeneratorTask(taskLogger, _libraryManager, _collectionManager, _providerManager);
             return task.ExecuteAsync(progress, cancellationToken);
         }
 
