@@ -16,6 +16,7 @@ mkdir -p "$RELEASE_DIR"
 cp "bin/Release/net6.0/Jellyfin.Plugin.CollectionImageGenerator.dll" "$RELEASE_DIR/"
 cp "bin/Release/net6.0/SixLabors.ImageSharp.dll" "$RELEASE_DIR/"
 cp "bin/Release/net6.0/SixLabors.ImageSharp.Drawing.dll" "$RELEASE_DIR/"
+cp "bin/Release/net6.0/SixLabors.Fonts.dll" "$RELEASE_DIR/"
 cp "Plugin.xml" "$RELEASE_DIR/"
 
 # Create zip file

@@ -36,6 +36,7 @@ jobs:
         cp bin/Release/net6.0/Jellyfin.Plugin.CollectionImageGenerator.dll release/
         cp bin/Release/net6.0/SixLabors.ImageSharp.dll release/
         cp bin/Release/net6.0/SixLabors.ImageSharp.Drawing.dll release/
+        cp bin/Release/net6.0/SixLabors.Fonts.dll release/
         cp Plugin.xml release/
     
     - name: Create zip file
