@@ -50,7 +50,7 @@ cat > manifest.json << EOF
         "version": "$VERSION",
         "changelog": "- Initial release\n",
         "targetAbi": "10.8.0.0",
-        "sourceUrl": "https://github.com/jellyfin-collection-image-generator/jellyfin-collection-image-generator/releases/download/$VERSION/collection-image-generator-$VERSION.zip",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/$VERSION/collection-image-generator-$VERSION.zip",
         "checksum": "$CHECKSUM",
         "timestamp": "$TIMESTAMP"
       }

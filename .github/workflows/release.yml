@@ -62,9 +62,9 @@ jobs:
             "versions": [
               {
                 "version": "${{ steps.get_version.outputs.VERSION }}",
-                "changelog": "- See the full changelog at [GitHub](https://github.com/jellyfin-collection-image-generator/jellyfin-collection-image-generator/releases/tag/${{ steps.get_version.outputs.VERSION }})\n",
+                "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/${{ steps.get_version.outputs.VERSION }})\n",
                 "targetAbi": "10.8.0.0",
-                "sourceUrl": "https://github.com/jellyfin-collection-image-generator/jellyfin-collection-image-generator/releases/download/${{ steps.get_version.outputs.VERSION }}/collection-image-generator-${{ steps.get_version.outputs.VERSION }}.zip",
+                "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/${{ steps.get_version.outputs.VERSION }}/collection-image-generator-${{ steps.get_version.outputs.VERSION }}.zip",
                 "checksum": "${{ steps.calculate_checksum.outputs.CHECKSUM }}",
                 "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
               }

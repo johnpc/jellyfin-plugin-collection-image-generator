@@ -48,7 +48,7 @@ $manifestContent = @"
         "version": "$Version",
         "changelog": "- Initial release\n",
         "targetAbi": "10.8.0.0",
-        "sourceUrl": "https://github.com/jellyfin-collection-image-generator/jellyfin-collection-image-generator/releases/download/$Version/collection-image-generator-$Version.zip",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/$Version/collection-image-generator-$Version.zip",
         "checksum": "$hash",
         "timestamp": "$timestamp"
       }
