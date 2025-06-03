@@ -51,7 +51,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ScheduledTasks
         public bool IsHidden => false;
 
         /// <inheritdoc />
-        public bool IsEnabled => Plugin.Instance!.Configuration.EnableScheduledTask;
+        public bool IsEnabled => Plugin.Instance?.Configuration?.EnableScheduledTask ?? false;
 
         /// <inheritdoc />
         public bool IsLogged => true;
@@ -70,9 +70,9 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ScheduledTasks
         /// <inheritdoc />
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
         {
-            var config = Plugin.Instance!.Configuration;
+            var config = Plugin.Instance?.Configuration;
             
-            if (config.EnableScheduledTask)
+            if (config != null && config.EnableScheduledTask)
             {
                 // Parse the time of day from configuration
                 if (TimeSpan.TryParse(config.ScheduledTaskTimeOfDay, out var time))
