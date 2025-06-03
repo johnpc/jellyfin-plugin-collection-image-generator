@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.CollectionImageGenerator.Tasks;
 using MediaBrowser.Controller.Library;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,7 +12,6 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Api
     /// The collection image generator controller.
     /// </summary>
     [ApiController]
-    [Authorize(Policy = "DefaultAuthorization")]
     [Route("CollectionImageGenerator")]
     public class CollectionImageGeneratorController : ControllerBase
     {

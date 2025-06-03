@@ -79,22 +79,21 @@
                 runNow: function() {
                     Dashboard.showLoadingMsg();
                     
-                    ApiClient.getApiUrl('CollectionImageGenerator/Run').then(function (url) {
-                        fetch(url, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-Emby-Token': ApiClient.accessToken()
-                            }
-                        })
-                        .then(function() {
-                            Dashboard.hideLoadingMsg();
-                            Dashboard.alert('Collection image generation started');
-                        })
-                        .catch(function() {
-                            Dashboard.hideLoadingMsg();
-                            Dashboard.alert('Error starting collection image generation');
-                        });
+                    var url = ApiClient.getUrl('CollectionImageGenerator/Run');
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Emby-Token': ApiClient.accessToken()
+                        }
+                    })
+                    .then(function() {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Collection image generation started');
+                    })
+                    .catch(function() {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Error starting collection image generation');
                     });
                 }
             };

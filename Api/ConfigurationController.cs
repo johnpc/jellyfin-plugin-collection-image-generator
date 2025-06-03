@@ -1,7 +1,6 @@
 using System;
 using Jellyfin.Plugin.CollectionImageGenerator.Configuration;
 using MediaBrowser.Common.Configuration;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,7 +10,6 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Api
     /// The configuration controller for the Collection Image Generator plugin.
     /// </summary>
     [ApiController]
-    [Authorize(Policy = "DefaultAuthorization")]
     [Route("Plugins/CollectionImageGenerator/Configuration")]
     public class ConfigurationController : ControllerBase
     {
