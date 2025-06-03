@@ -28,28 +28,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
         private readonly ILogger<CollectionImageGeneratorTask> _logger;
         private readonly ILibraryManager _libraryManager;
         private readonly ICollectionManager _collectionManager;
-        private readonly IProviderManager? _providerManager;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="CollectionImageGeneratorTask"/> class.
-        /// </summary>
-        /// <param name="logger">Instance of the <see cref="ILogger{CollectionImageGeneratorTask}"/> interface.</param>
-        /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
-        /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
-        /// <param name="providerManager">Instance of the <see cref="IProviderManager"/> interface.</param>
-        public CollectionImageGeneratorTask(
-            ILogger<CollectionImageGeneratorTask> logger,
-            ILibraryManager libraryManager,
-            ICollectionManager collectionManager,
-            IProviderManager providerManager)
-        {
-            _logger = logger;
-            _libraryManager = libraryManager;
-            _collectionManager = collectionManager;
-            _providerManager = providerManager;
-        }
-
-        // For compatibility with older Jellyfin versions that don't support dependency injection
         /// <summary>
         /// Initializes a new instance of the <see cref="CollectionImageGeneratorTask"/> class.
         /// </summary>
@@ -64,7 +43,6 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
             _logger = logger;
             _libraryManager = libraryManager;
             _collectionManager = collectionManager;
-            _providerManager = null; // Will use alternative approach if null
         }
 
         /// <inheritdoc />
@@ -339,23 +317,27 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                 
                 _logger.LogInformation("Saved image to {Path}", outputPath);
                 
-                // If we have the provider manager, use it to set the image
-                if (_providerManager != null)
-                {
-                    string tempPath = Path.GetTempFileName();
-                    File.WriteAllBytes(tempPath, imageData);
-                    await _providerManager.SaveImage(collection, tempPath, MediaBrowser.Model.Entities.ImageType.Primary, 0, cancellationToken);
-                    File.Delete(tempPath);
-                    _logger.LogInformation("Used provider manager to set image");
-                }
-                
                 // Force a refresh of the collection
                 _logger.LogInformation("Refreshing metadata for collection {Name}", collection.Name);
-                await collection.RefreshMetadata(cancellationToken).ConfigureAwait(false);
                 
-                // Try to force the collection to reload its images
-                _logger.LogInformation("Forcing image refresh for collection {Name}", collection.Name);
+                // First, try to clear any existing image cache
+                try
+                {
+                    // We can't directly set PrimaryImagePath as it's read-only
+                    // Instead, force a metadata refresh and image update
+                    await collection.RefreshMetadata(cancellationToken).ConfigureAwait(false);
+                    _logger.LogInformation("Refreshed metadata");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error refreshing metadata, continuing anyway");
+                }
+                
+                // Force image update
                 await collection.UpdateToRepositoryAsync(ItemUpdateType.ImageUpdate, cancellationToken).ConfigureAwait(false);
+                
+                // Additional image refresh to ensure it's picked up
+                await collection.UpdateToRepositoryAsync(ItemUpdateType.MetadataImport, cancellationToken).ConfigureAwait(false);
                 
                 _logger.LogInformation("Successfully set primary image for collection {Name}", collection.Name);
             }

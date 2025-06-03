@@ -8,12 +8,12 @@
     "category": "Metadata",
     "versions": [
       {
-        "version": "0.0.0.17",
+        "version": "0.0.0.18",
         "changelog": "- Initial release\n",
         "targetAbi": "10.8.0.0",
-        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.17/collection-image-generator-0.0.0.17.zip",
-        "checksum": "26b25002ce33901d41e05dcf3bc91a75",
-        "timestamp": "2025-06-03T20:45:10Z"
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.18/collection-image-generator-0.0.0.18.zip",
+        "checksum": "338e5f18085ada8ed2f8b82d5345a2b0",
+        "timestamp": "2025-06-03T20:55:01Z"
       }
     ]
   }

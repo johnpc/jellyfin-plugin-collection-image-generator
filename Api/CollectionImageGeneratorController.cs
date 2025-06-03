@@ -53,7 +53,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Api
         {
             // Create a new instance of the task directly
             var logger = _loggerFactory.CreateLogger<CollectionImageGeneratorTask>();
-            var task = new CollectionImageGeneratorTask(logger, _libraryManager, _collectionManager, _providerManager);
+            var task = new CollectionImageGeneratorTask(logger, _libraryManager, _collectionManager);
             
             await task.ExecuteAsync(new Progress<double>(), default).ConfigureAwait(false);
             return NoContent();

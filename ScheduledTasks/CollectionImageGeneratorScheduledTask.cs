@@ -68,7 +68,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ScheduledTasks
             var taskLogger = (ILogger<CollectionImageGeneratorTask>)LoggerFactory.Create(builder => 
                 builder.AddConsole()).CreateLogger<CollectionImageGeneratorTask>();
                 
-            var task = new CollectionImageGeneratorTask(taskLogger, _libraryManager, _collectionManager, _providerManager);
+            var task = new CollectionImageGeneratorTask(taskLogger, _libraryManager, _collectionManager);
             return task.ExecuteAsync(progress, cancellationToken);
         }
 
