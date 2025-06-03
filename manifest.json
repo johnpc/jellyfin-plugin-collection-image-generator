@@ -9,11 +9,147 @@
     "versions": [
       {
         "version": "0.0.0.19",
-        "changelog": "- Initial release\n",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.19)\n",
         "targetAbi": "10.8.0.0",
         "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.19/collection-image-generator-0.0.0.19.zip",
-        "checksum": "980ffe5122678970c6322c16a91a6fb8",
-        "timestamp": "2025-06-03T22:01:31Z"
+        "checksum": "754b2d4170fea223729e060be1b5c574",
+        "timestamp": "2025-06-03T22:02:07Z"
+      },
+      {
+        "version": "0.0.0.17",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.17)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.17/collection-image-generator-0.0.0.17.zip",
+        "checksum": "388272b0ff38b1d6860b52a8262c058e",
+        "timestamp": "2025-06-03T20:57:33Z"
+      },
+      {
+        "version": "0.0.0.16",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.16)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.16/collection-image-generator-0.0.0.16.zip",
+        "checksum": "c5ffcfdf4cdad3e7e3a319d4528fc555",
+        "timestamp": "2025-06-03T20:46:50Z"
+      },
+      {
+        "version": "0.0.0.15",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.15)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.15/collection-image-generator-0.0.0.15.zip",
+        "checksum": "1484c2dc15ca198d5b1d71f3677aa304",
+        "timestamp": "2025-06-03T20:33:24Z"
+      },
+      {
+        "version": "0.0.0.14",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.14)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.14/collection-image-generator-0.0.0.14.zip",
+        "checksum": "878d182ffdb13f420659fd37503189c3",
+        "timestamp": "2025-06-03T20:21:14Z"
+      },
+      {
+        "version": "0.0.0.13",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.13)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.13/collection-image-generator-0.0.0.13.zip",
+        "checksum": "f06bef2d39dcb1e2532667a2b7dea654",
+        "timestamp": "2025-06-03T20:02:47Z"
+      },
+      {
+        "version": "0.0.0.12",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.12)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.12/collection-image-generator-0.0.0.12.zip",
+        "checksum": "0729e833450700f8743db3aa86c68178",
+        "timestamp": "2025-06-03T19:32:39Z"
+      },
+      {
+        "version": "0.0.0.11",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.11)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.11/collection-image-generator-0.0.0.11.zip",
+        "checksum": "f8f2f950739630045b4681a00840421f",
+        "timestamp": "2025-06-03T19:28:13Z"
+      },
+      {
+        "version": "0.0.0.10",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.10)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.10/collection-image-generator-0.0.0.10.zip",
+        "checksum": "9d36672594f7ee05760464050a89c3c4",
+        "timestamp": "2025-06-03T19:17:55Z"
+      },
+      {
+        "version": "0.0.0.9",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.9)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.9/collection-image-generator-0.0.0.9.zip",
+        "checksum": "c614d9ef51400330ac93be8abbd53c97",
+        "timestamp": "2025-06-03T19:04:59Z"
+      },
+      {
+        "version": "0.0.0.8",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.8)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.8/collection-image-generator-0.0.0.8.zip",
+        "checksum": "0ba526b10c8176dc98b46c73bd8d730b",
+        "timestamp": "2025-06-03T18:59:05Z"
+      },
+      {
+        "version": "0.0.0.7",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.7)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.7/collection-image-generator-0.0.0.7.zip",
+        "checksum": "07049d10b8b6bf11befa4c9db1150ec8",
+        "timestamp": "2025-06-03T16:27:53Z"
+      },
+      {
+        "version": "0.0.0.6",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.6)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.6/collection-image-generator-0.0.0.6.zip",
+        "checksum": "41db07a6902e785d5e3cec594e4e68ab",
+        "timestamp": "2025-06-03T16:19:22Z"
+      },
+      {
+        "version": "0.0.0.5",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.5)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.5/collection-image-generator-0.0.0.5.zip",
+        "checksum": "bcd70e4960351a6fca55e5787ae81909",
+        "timestamp": "2025-06-03T16:11:35Z"
+      },
+      {
+        "version": "0.0.0.4",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.4)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.4/collection-image-generator-0.0.0.4.zip",
+        "checksum": "250e8c6d34c460a146f627663b7b4098",
+        "timestamp": "2025-06-03T16:05:51Z"
+      },
+      {
+        "version": "0.0.0.3",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.3)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.3/collection-image-generator-0.0.0.3.zip",
+        "checksum": "11043dbe48dd217972ba1cc628eeb283",
+        "timestamp": "2025-06-03T15:53:47Z"
+      },
+      {
+        "version": "0.0.0.2",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.2)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.2/collection-image-generator-0.0.0.2.zip",
+        "checksum": "40771fbad5a8b3a33f3d162ea6161e73",
+        "timestamp": "2025-06-03T15:44:24Z"
+      },
+      {
+        "version": "0.0.0.1",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/jellyfin-collection-image-generator/jellyfin-collection-image-generator/releases/tag/0.0.0.1)\n",
+        "targetAbi": "10.8.0.0",
+        "sourceUrl": "https://github.com/jellyfin-collection-image-generator/jellyfin-collection-image-generator/releases/download/0.0.0.1/collection-image-generator-0.0.0.1.zip",
+        "checksum": "55cd9a61cf6bf3157092a54e12fa78cf",
+        "timestamp": "2025-06-03T15:29:20Z"
       }
     ]
   }
