@@ -12,8 +12,8 @@
         "changelog": "- Initial release\n",
         "targetAbi": "10.8.0.0",
         "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.19/collection-image-generator-0.0.0.19.zip",
-        "checksum": "4ef106321215530916817a7693377821",
-        "timestamp": "2025-06-03T21:57:09Z"
+        "checksum": "980ffe5122678970c6322c16a91a6fb8",
+        "timestamp": "2025-06-03T22:01:31Z"
       }
     ]
   }
