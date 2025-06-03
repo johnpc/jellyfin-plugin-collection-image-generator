@@ -35,6 +35,15 @@ namespace Jellyfin.Plugin.CollectionImageGenerator
         /// </summary>
         public static Plugin? Instance { get; private set; }
 
+        /// <summary>
+        /// Gets or sets the plugin configuration.
+        /// </summary>
+        public new PluginConfiguration Configuration
+        {
+            get => base.Configuration;
+            set => base.Configuration = value;
+        }
+
         /// <inheritdoc />
         public IEnumerable<PluginPageInfo> GetPages()
         {
