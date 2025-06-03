@@ -226,9 +226,9 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                 }
                 
                 // Save the collage as the collection's primary image
-                var directory = Path.GetDirectoryName(collection.Path);
+                var directory = collection.Path; // Use the full collection path instead of just the directory
                 var filename = $"folder{Path.DirectorySeparatorChar}poster.jpg";
-                var outputPath = Path.Combine(directory!, filename);
+                var outputPath = Path.Combine(directory, filename);
                 
                 _logger.LogInformation("Saving collage to {Path}", outputPath);
                 
