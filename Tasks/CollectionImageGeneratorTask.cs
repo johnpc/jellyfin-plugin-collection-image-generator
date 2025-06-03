@@ -10,6 +10,7 @@ using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
@@ -246,15 +247,29 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                 {
                     _logger.LogInformation("Collage file successfully created at {Path}", outputPath);
                     
-                    // Refresh the collection to use the new image
-                    _logger.LogInformation("Refreshing metadata for collection {Name}", collection.Name);
-                    await collection.RefreshMetadata(cancellationToken).ConfigureAwait(false);
-                    
-                    // Verify if the image was set
-                    _logger.LogInformation("After refresh, collection primary image path: {Path}", 
-                        collection.PrimaryImagePath ?? "null");
-                    
-                    _logger.LogInformation("Successfully generated collage for collection: {Name}", collection.Name);
+                    try
+                    {
+                        // Try a different approach to set the image
+                        _logger.LogInformation("Setting primary image path on collection {Name}", collection.Name);
+                        
+                        // Force a refresh of the collection
+                        _logger.LogInformation("Refreshing metadata for collection {Name}", collection.Name);
+                        await collection.RefreshMetadata(cancellationToken).ConfigureAwait(false);
+                        
+                        // Try to force the collection to reload its images
+                        _logger.LogInformation("Forcing image refresh for collection {Name}", collection.Name);
+                        await collection.UpdateToRepositoryAsync(ItemUpdateType.ImageUpdate, cancellationToken).ConfigureAwait(false);
+                        
+                        // Verify if the image was set
+                        _logger.LogInformation("After update, collection primary image path: {Path}", 
+                            collection.PrimaryImagePath ?? "null");
+                        
+                        _logger.LogInformation("Successfully generated collage for collection: {Name}", collection.Name);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error setting image for collection {Name}", collection.Name);
+                    }
                 }
                 else
                 {
