@@ -5,6 +5,9 @@ Jellyfin Collection Image Generator Plugin is a plugin that automatically create
 
 ![](examples/example.png)
 
+![IMG_8296](https://github.com/user-attachments/assets/6c2a7323-8f4b-4f1a-be6e-555b8b44b2d1)
+
+
 </p>
 
 ## Install Process
