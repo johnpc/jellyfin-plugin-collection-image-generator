@@ -3,10 +3,7 @@
 <p align="center">
 Jellyfin Collection Image Generator Plugin is a plugin that automatically creates Collection Images for collections that do not already have an image specified. I hate that when I create a jellyfin collection, the image is just... empty! With this plugin, it generates and image that is a collage of the posters of the content inside the collection.
 
-![](examples/example.png)
-
-![IMG_8296](https://github.com/user-attachments/assets/6c2a7323-8f4b-4f1a-be6e-555b8b44b2d1)
-
+<img src="[https://media1.tenor.com/m/ofDuH0hvGh8AAAAd/so-what-do-you-think.gif](https://github.com/user-attachments/assets/6c2a7323-8f4b-4f1a-be6e-555b8b44b2d1)" width="200" title="screenshot" alt="screenshot"/>
 
 </p>
 
