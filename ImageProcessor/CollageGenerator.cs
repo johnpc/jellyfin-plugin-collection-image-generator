@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MediaBrowser.Controller.Entities;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Drawing.Processing;
@@ -42,7 +41,6 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ImageProcessor
             {
                 // Determine the layout based on the number of images
                 var imageCount = imagePaths.Count;
-                var (rows, cols) = GetGridDimensions(imageCount);
                 
                 // Create a new image with appropriate dimensions
                 const int targetWidth = 1000;
@@ -52,7 +50,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ImageProcessor
                 using var outputImage = new Image<Rgba32>(targetWidth, targetHeight);
                 
                 // Get dynamic background color from the input images
-                var backgroundColor = await GetDynamicBackgroundColorAsync(imagePaths, cancellationToken);
+                var backgroundColor = await GetDynamicBackgroundColorAsync(imagePaths, cancellationToken).ConfigureAwait(false);
                 
                 // Fill background with the dynamic color
                 outputImage.Mutate(x => x.BackgroundColor(backgroundColor));
@@ -73,7 +71,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ImageProcessor
                     
                     try
                     {
-                        using var posterImage = await Image.LoadAsync<Rgba32>(imagePath, cancellationToken);
+                        using var posterImage = await Image.LoadAsync<Rgba32>(imagePath, cancellationToken).ConfigureAwait(false);
                         
                         // Use consistent grid size for all items (same width and height)
                         var gridWidth = position.Width - (padding * 2);
@@ -113,7 +111,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ImageProcessor
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
                 
                 // Save the image
-                await outputImage.SaveAsJpegAsync(outputPath, cancellationToken);
+                await outputImage.SaveAsJpegAsync(outputPath, cancellationToken).ConfigureAwait(false);
                 
                 _logger.LogInformation("Successfully generated collage at {Path}", outputPath);
             }
@@ -123,169 +121,229 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ImageProcessor
             }
         }
 
-        private static (int rows, int cols) GetGridDimensions(int count)
-        {
-            return count switch
-            {
-                1 => (1, 1),
-                2 => (2, 1), // Staggered layout
-                3 => (2, 2), // Triangular arrangement
-                4 => (2, 2),
-                5 => (2, 3), // 2 top, 3 bottom
-                6 => (2, 3),
-                7 => (3, 3), // 2-3-2 arrangement
-                8 => (3, 3), // 3-2-3 arrangement
-                9 => (3, 3),
-                _ => (3, 3), // Default to 3x3 for any larger number
-            };
-        }
-
         /// <summary>
         /// Gets custom positions for each image based on the layout type with consistent padding.
         /// </summary>
         private static List<(int X, int Y, int Width, int Height)> GetCustomPositions(int count, int canvasWidth, int canvasHeight, int padding)
         {
+            return count switch
+            {
+                1 => GetSingleImageLayout(canvasWidth, canvasHeight, padding),
+                2 => GetDiagonalLayout(canvasWidth, canvasHeight, padding),
+                3 => GetTriangularLayout(canvasWidth, canvasHeight, padding),
+                4 => GetQuadLayout(canvasWidth, canvasHeight, padding),
+                5 => GetLayout_2_1_2(canvasWidth, canvasHeight, padding),
+                6 => GetLayout_2_2_2(canvasWidth, canvasHeight, padding),
+                7 => GetLayout_2_3_2(canvasWidth, canvasHeight, padding),
+                8 => GetLayout_3_2_3(canvasWidth, canvasHeight, padding),
+                _ => GetStandardGridLayout(count, canvasWidth, canvasHeight, padding)
+            };
+        }
+
+        /// <summary>
+        /// Gets cell dimensions for a 3x3 grid layout.
+        /// </summary>
+        private static (int width, int height) Get3x3CellSize(int canvasWidth, int canvasHeight, int padding)
+        {
+            return ((canvasWidth - (padding * 4)) / 3, (canvasHeight - (padding * 4)) / 3);
+        }
+
+        /// <summary>
+        /// Gets cell dimensions for a 2x2 grid layout.
+        /// </summary>
+        private static (int width, int height) Get2x2CellSize(int canvasWidth, int canvasHeight, int padding)
+        {
+            return ((canvasWidth - (padding * 3)) / 2, (canvasHeight - (padding * 3)) / 2);
+        }
+
+        /// <summary>
+        /// Adds a row of images with standard grid spacing.
+        /// </summary>
+        private static void AddStandardRow(List<(int X, int Y, int Width, int Height)> positions, 
+            int rowIndex, int startCol, int itemCount, int cellWidth, int cellHeight, int padding)
+        {
+            var rowY = padding + rowIndex * (cellHeight + padding);
+            for (var i = 0; i < itemCount; i++)
+            {
+                var colX = padding + (startCol + i) * (cellWidth + padding);
+                positions.Add((colX, rowY, cellWidth, cellHeight));
+            }
+        }
+
+        /// <summary>
+        /// Adds a row of images centered horizontally.
+        /// </summary>
+        private static void AddCenteredRow(List<(int X, int Y, int Width, int Height)> positions,
+            int rowIndex, int itemCount, int cellWidth, int cellHeight, int padding, int canvasWidth)
+        {
+            var rowY = padding + rowIndex * (cellHeight + padding);
+            var centerOffset = (cellWidth + padding) / 2;
+            var startX = padding + centerOffset;
+            
+            for (var i = 0; i < itemCount; i++)
+            {
+                var colX = startX + i * (cellWidth + padding);
+                positions.Add((colX, rowY, cellWidth, cellHeight));
+            }
+        }
+
+        /// <summary>
+        /// Single image centered with padding.
+        /// </summary>
+        private static List<(int X, int Y, int Width, int Height)> GetSingleImageLayout(int canvasWidth, int canvasHeight, int padding)
+        {
+            return new List<(int X, int Y, int Width, int Height)>
+            {
+                (padding, padding, canvasWidth - (padding * 2), canvasHeight - (padding * 2))
+            };
+        }
+
+        /// <summary>
+        /// Diagonal arrangement with 1/8 canvas width inward spacing.
+        /// </summary>
+        private static List<(int X, int Y, int Width, int Height)> GetDiagonalLayout(int canvasWidth, int canvasHeight, int padding)
+        {
+            var (width, height) = Get2x2CellSize(canvasWidth, canvasHeight, padding);
+            var eighthWidth = canvasWidth / 8;
+            
+            return new List<(int X, int Y, int Width, int Height)>
+            {
+                (padding + eighthWidth, padding, width, height),
+                (canvasWidth - width - padding - eighthWidth, canvasHeight - height - padding, width, height)
+            };
+        }
+
+        /// <summary>
+        /// Triangular arrangement - 1 top centered, 2 bottom.
+        /// </summary>
+        private static List<(int X, int Y, int Width, int Height)> GetTriangularLayout(int canvasWidth, int canvasHeight, int padding)
+        {
+            var (width, height) = Get2x2CellSize(canvasWidth, canvasHeight, padding);
+            var topCenterX = (canvasWidth - width) / 2;
+            
+            return new List<(int X, int Y, int Width, int Height)>
+            {
+                (topCenterX, padding, width, height), // Top center
+                (padding, padding * 2 + height, width, height), // Bottom left
+                (padding * 2 + width, padding * 2 + height, width, height) // Bottom right
+            };
+        }
+
+        /// <summary>
+        /// Standard 2x2 grid layout.
+        /// </summary>
+        private static List<(int X, int Y, int Width, int Height)> GetQuadLayout(int canvasWidth, int canvasHeight, int padding)
+        {
+            var (width, height) = Get2x2CellSize(canvasWidth, canvasHeight, padding);
             var positions = new List<(int X, int Y, int Width, int Height)>();
             
-            switch (count)
+            AddStandardRow(positions, 0, 0, 2, width, height, padding);
+            AddStandardRow(positions, 1, 0, 2, width, height, padding);
+            
+            return positions;
+        }
+
+        /// <summary>
+        /// 2-1-2 arrangement: top row 2 images, middle row 1 centered, bottom row 2 images.
+        /// </summary>
+        private static List<(int X, int Y, int Width, int Height)> GetLayout_2_1_2(int canvasWidth, int canvasHeight, int padding)
+        {
+            var (width, height) = Get3x3CellSize(canvasWidth, canvasHeight, padding);
+            var positions = new List<(int X, int Y, int Width, int Height)>();
+            
+            // Top row (2 images centered)
+            AddCenteredRow(positions, 0, 2, width, height, padding, canvasWidth);
+            
+            // Middle row (1 centered image)
+            var centerX = (canvasWidth - width) / 2;
+            var middleY = padding * 2 + height;
+            positions.Add((centerX, middleY, width, height));
+            
+            // Bottom row (2 images centered)
+            AddCenteredRow(positions, 2, 2, width, height, padding, canvasWidth);
+            
+            return positions;
+        }
+
+        /// <summary>
+        /// 2-2-2 arrangement (3 rows, 2 columns each) with wider spacing in middle row.
+        /// </summary>
+        private static List<(int X, int Y, int Width, int Height)> GetLayout_2_2_2(int canvasWidth, int canvasHeight, int padding)
+        {
+            var (width, height) = Get3x3CellSize(canvasWidth, canvasHeight, padding);
+            var positions = new List<(int X, int Y, int Width, int Height)>();
+            
+            // Top row (2 images centered)
+            AddCenteredRow(positions, 0, 2, width, height, padding, canvasWidth);
+            
+            // Middle row (2 images with wider spacing)
+            var middleRowSpacing = (int)(width * 0.4f);
+            var middleStartX = (canvasWidth - (width * 2 + middleRowSpacing)) / 2;
+            var middleY = padding * 2 + height;
+            positions.Add((middleStartX, middleY, width, height));
+            positions.Add((middleStartX + width + middleRowSpacing, middleY, width, height));
+            
+            // Bottom row (2 images centered)
+            AddCenteredRow(positions, 2, 2, width, height, padding, canvasWidth);
+            
+            return positions;
+        }
+
+        /// <summary>
+        /// 2-3-2 arrangement with consistent cell sizes.
+        /// </summary>
+        private static List<(int X, int Y, int Width, int Height)> GetLayout_2_3_2(int canvasWidth, int canvasHeight, int padding)
+        {
+            var (width, height) = Get3x3CellSize(canvasWidth, canvasHeight, padding);
+            var positions = new List<(int X, int Y, int Width, int Height)>();
+            
+            // Top row (2 images centered)
+            AddCenteredRow(positions, 0, 2, width, height, padding, canvasWidth);
+            
+            // Middle row (3 images)
+            AddStandardRow(positions, 1, 0, 3, width, height, padding);
+            
+            // Bottom row (2 images centered)
+            AddCenteredRow(positions, 2, 2, width, height, padding, canvasWidth);
+            
+            return positions;
+        }
+
+        /// <summary>
+        /// 3-2-3 arrangement with consistent cell sizes.
+        /// </summary>
+        private static List<(int X, int Y, int Width, int Height)> GetLayout_3_2_3(int canvasWidth, int canvasHeight, int padding)
+        {
+            var (width, height) = Get3x3CellSize(canvasWidth, canvasHeight, padding);
+            var positions = new List<(int X, int Y, int Width, int Height)>();
+            
+            // Top row (3 images)
+            AddStandardRow(positions, 0, 0, 3, width, height, padding);
+            
+            // Middle row (2 images centered)
+            AddCenteredRow(positions, 1, 2, width, height, padding, canvasWidth);
+            
+            // Bottom row (3 images)
+            AddStandardRow(positions, 2, 0, 3, width, height, padding);
+            
+            return positions;
+        }
+
+        /// <summary>
+        /// Standard 3x3 grid for 9+ images with consistent padding.
+        /// </summary>
+        private static List<(int X, int Y, int Width, int Height)> GetStandardGridLayout(int count, int canvasWidth, int canvasHeight, int padding)
+        {
+            var (width, height) = Get3x3CellSize(canvasWidth, canvasHeight, padding);
+            var positions = new List<(int X, int Y, int Width, int Height)>();
+            
+            for (var i = 0; i < Math.Min(count, 9); i++)
             {
-                case 1:
-                    // Single image centered with padding
-                    positions.Add((padding, padding, canvasWidth - (padding * 2), canvasHeight - (padding * 2)));
-                    break;
-                    
-                case 2:
-                    // Diagonal arrangement with 1/8 canvas width inward spacing
-                    var width2 = (canvasWidth - padding * 3) / 2;
-                    var height2 = (canvasHeight - padding * 3) / 2;
-                    
-                    // Eighth width offset to shift images inward from edges
-                    var eighthWidth = canvasWidth / 8;
-                    
-                    // Top-left image - shifted inward from left edge by 1/8 canvas width
-                    positions.Add((padding + eighthWidth, padding, width2, height2));
-                    
-                    // Bottom-right image - shifted inward from right edge by 1/8 canvas width
-                    var bottomX = canvasWidth - width2 - padding - eighthWidth;
-                    var bottomY = canvasHeight - height2 - padding;
-                    positions.Add((bottomX, bottomY, width2, height2));
-                    break;
-                    
-                case 3:
-                    // Triangular arrangement - 1 top centered, 2 bottom with consistent padding
-                    var width3 = (canvasWidth - (padding * 3)) / 2;
-                    var height3 = (canvasHeight - (padding * 3)) / 2;
-                    var topCenterX = (canvasWidth - width3) / 2;
-                    positions.Add((topCenterX, padding, width3, height3)); // Top center
-                    positions.Add((padding, padding * 2 + height3, width3, height3)); // Bottom left
-                    positions.Add((padding * 2 + width3, padding * 2 + height3, width3, height3)); // Bottom right
-                    break;
-                    
-                case 4:
-                    // Standard 2x2 grid with consistent padding
-                    var width4 = (canvasWidth - (padding * 3)) / 2;
-                    var height4 = (canvasHeight - (padding * 3)) / 2;
-                    positions.Add((padding, padding, width4, height4));
-                    positions.Add((padding * 2 + width4, padding, width4, height4));
-                    positions.Add((padding, padding * 2 + height4, width4, height4));
-                    positions.Add((padding * 2 + width4, padding * 2 + height4, width4, height4));
-                    break;
-                    
-                case 5:
-                    // 2-1-2 arrangement: top row 2 images, middle row 1 centered, bottom row 2 images
-                    // Same spacing as 6-item and 7-item layouts for 1st and 3rd rows
-                    var width5 = (canvasWidth - (padding * 4)) / 3;  // Same size as 6-item and 7-item layouts (3x3 grid cells)
-                    var height5 = (canvasHeight - (padding * 4)) / 3; // 3-row height
-                    
-                    // Top row (2 images) - same spacing as 6-item layout top row
-                    var centerOffsetX5 = (width5 + padding) / 2; // Center the 2-item row (same as 6-item and 7-item)
-                    positions.Add((padding + centerOffsetX5, padding, width5, height5)); // Top left
-                    positions.Add((padding * 2 + width5 + centerOffsetX5, padding, width5, height5)); // Top right
-                    
-                    // Middle row (1 centered image)
-                    var centerX5 = (canvasWidth - width5) / 2;
-                    positions.Add((centerX5, padding * 2 + height5, width5, height5)); // Middle center
-                    
-                    // Bottom row (2 images) - same spacing as 6-item layout bottom row
-                    positions.Add((padding + centerOffsetX5, padding * 3 + height5 * 2, width5, height5)); // Bottom left
-                    positions.Add((padding * 2 + width5 + centerOffsetX5, padding * 3 + height5 * 2, width5, height5)); // Bottom right
-                    break;
-                    
-                case 6:
-                    // 2-2-2 arrangement (3 rows, 2 columns each) with wider spacing in middle row
-                    var width6 = (canvasWidth - (padding * 4)) / 3;  // Same size as 7-item layout (3x3 grid cells)
-                    var height6 = (canvasHeight - (padding * 4)) / 3; // 3-row height
-                    
-                    // Top row (2 images) - same spacing as 7-item layout top row
-                    var centerOffsetX6 = (width6 + padding) / 2; // Center the 2-item row (same as 7-item)
-                    positions.Add((padding + centerOffsetX6, padding, width6, height6));
-                    positions.Add((padding * 2 + width6 + centerOffsetX6, padding, width6, height6));
-                    
-                    // Middle row (2 images) - wider spacing between them, same size as top/bottom rows
-                    var middleRowSpacing = (int)(width6 * 0.4f); // Additional spacing for middle row
-                    var middleStartX = (canvasWidth - (width6 * 2 + middleRowSpacing)) / 2;
-                    positions.Add((middleStartX, padding * 2 + height6, width6, height6));
-                    positions.Add((middleStartX + width6 + middleRowSpacing, padding * 2 + height6, width6, height6));
-                    
-                    // Bottom row (2 images) - same spacing as 7-item layout bottom row
-                    positions.Add((padding + centerOffsetX6, padding * 3 + height6 * 2, width6, height6));
-                    positions.Add((padding * 2 + width6 + centerOffsetX6, padding * 3 + height6 * 2, width6, height6));
-                    break;
-                    
-                case 7:
-                    // 2-3-2 arrangement with consistent cell sizes (all cells same size as 3x3 grid)
-                    var width7 = (canvasWidth - (padding * 4)) / 3;  // Same size as 3x3 grid cells
-                    var height7 = (canvasHeight - (padding * 4)) / 3;
-                    
-                    // Top row (2 images) - centered with same cell size
-                    var centerOffsetX7 = (width7 + padding) / 2; // Center the 2-item row
-                    positions.Add((padding + centerOffsetX7, padding, width7, height7));
-                    positions.Add((padding * 2 + width7 + centerOffsetX7, padding, width7, height7));
-                    
-                    // Middle row (3 images) - standard spacing
-                    positions.Add((padding, padding * 2 + height7, width7, height7));
-                    positions.Add((padding * 2 + width7, padding * 2 + height7, width7, height7));
-                    positions.Add((padding * 3 + width7 * 2, padding * 2 + height7, width7, height7));
-                    
-                    // Bottom row (2 images) - centered with same cell size
-                    positions.Add((padding + centerOffsetX7, padding * 3 + height7 * 2, width7, height7));
-                    positions.Add((padding * 2 + width7 + centerOffsetX7, padding * 3 + height7 * 2, width7, height7));
-                    break;
-                    
-                case 8:
-                    // 3-2-3 arrangement with consistent cell sizes (all cells same size as 3x3 grid)
-                    var width8 = (canvasWidth - (padding * 4)) / 3;  // Same size as 3x3 grid cells
-                    var height8 = (canvasHeight - (padding * 4)) / 3;
-                    
-                    // Top row (3 images) - standard spacing
-                    positions.Add((padding, padding, width8, height8));
-                    positions.Add((padding * 2 + width8, padding, width8, height8));
-                    positions.Add((padding * 3 + width8 * 2, padding, width8, height8));
-                    
-                    // Middle row (2 images) - centered with same cell size
-                    var centerOffsetX = (width8 + padding) / 2; // Center the 2-item row
-                    positions.Add((padding + centerOffsetX, padding * 2 + height8, width8, height8));
-                    positions.Add((padding * 2 + width8 + centerOffsetX, padding * 2 + height8, width8, height8));
-                    
-                    // Bottom row (3 images) - standard spacing
-                    positions.Add((padding, padding * 3 + height8 * 2, width8, height8));
-                    positions.Add((padding * 2 + width8, padding * 3 + height8 * 2, width8, height8));
-                    positions.Add((padding * 3 + width8 * 2, padding * 3 + height8 * 2, width8, height8));
-                    break;
-                    
-                default:
-                    // Standard 3x3 grid for 9+ images with consistent padding
-                    var width = (canvasWidth - (padding * 4)) / 3;
-                    var height = (canvasHeight - (padding * 4)) / 3;
-                    for (var i = 0; i < Math.Min(count, 9); i++)
-                    {
-                        var row = i / 3;
-                        var col = i % 3;
-                        var x = padding + col * (width + padding);
-                        var y = padding + row * (height + padding);
-                        positions.Add((x, y, width, height));
-                    }
-                    break;
+                var row = i / 3;
+                var col = i % 3;
+                var x = padding + col * (width + padding);
+                var y = padding + row * (height + padding);
+                positions.Add((x, y, width, height));
             }
             
             return positions;
@@ -311,7 +369,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ImageProcessor
                         
                     try
                     {
-                        using var image = await Image.LoadAsync<Rgba32>(imagePath, cancellationToken);
+                        using var image = await Image.LoadAsync<Rgba32>(imagePath, cancellationToken).ConfigureAwait(false);
                         var sampledColors = SampleImageColors(image, pixelSampleRate);
                         allColors.AddRange(sampledColors);
                     }
@@ -378,13 +436,13 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ImageProcessor
             if (colors.Count == 0 || k <= 0)
                 return new List<ColorCluster>();
             
-            var random = new Random(42); // Fixed seed for consistency
             var clusters = new List<ColorCluster>();
             
-            // Initialize cluster centroids randomly
+            // Initialize cluster centroids deterministically by spreading them evenly
             for (var i = 0; i < k; i++)
             {
-                var randomColor = colors[random.Next(colors.Count)];
+                var index = i * colors.Count / k;
+                var randomColor = colors[index];
                 clusters.Add(new ColorCluster
                 {
                     CentroidR = randomColor.R,
