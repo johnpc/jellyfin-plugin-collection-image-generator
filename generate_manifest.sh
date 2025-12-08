@@ -64,7 +64,7 @@ done
 
 # Sort versions by semver (highest to lowest)
 echo "Sorting versions by semantic versioning (highest to lowest)..."
-SORTED_VERSIONS=$(echo "$ALL_VERSIONS" | jq 'sort_by(.version | split(".") | map(tonumber)) | reverse')
+SORTED_VERSIONS=$(echo "$ALL_VERSIONS" | jq 'sort_by(.version | ltrimstr("v") | split(".") | map(tonumber)) | reverse')
 
 # Create the final manifest by combining the base with sorted versions
 FINAL_MANIFEST=$(echo "$BASE_MANIFEST" | jq --argjson versions "$SORTED_VERSIONS" '. + {versions: $versions}')
