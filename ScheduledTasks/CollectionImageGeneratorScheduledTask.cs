@@ -84,7 +84,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ScheduledTasks
                 {
                     yield return new TaskTriggerInfo
                     {
-                        Type = TaskTriggerInfoType.DailyTrigger,
+                        Type = TaskTriggerInfoType.Daily,
                         TimeOfDayTicks = time.Ticks
                     };
                 }
@@ -93,7 +93,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ScheduledTasks
                     // Default to 3 AM if parsing fails
                     yield return new TaskTriggerInfo
                     {
-                        Type = TaskTriggerInfoType.DailyTrigger,
+                        Type = TaskTriggerInfoType.Daily,
                         TimeOfDayTicks = TimeSpan.FromHours(3).Ticks
                     };
                 }
