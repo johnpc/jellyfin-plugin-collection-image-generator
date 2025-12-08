@@ -51,3 +51,7 @@ Network Trash Folder
 Temporary Items
 .apdisk
 *.zip
+
+# Test output
+
+test/output
