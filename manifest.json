@@ -8,7 +8,7 @@
     "category": "Metadata",
     "versions": [
       {
-        "version": "v0.0.0.21",
+        "version": "0.0.0.21",
         "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/v0.0.0.21)\n",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/v0.0.0.21/collection-image-generator-v0.0.0.21.zip",
