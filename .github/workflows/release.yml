@@ -18,7 +18,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 9.0.x
     
     - name: Restore dependencies
       run: dotnet restore
@@ -33,10 +33,10 @@ jobs:
     - name: Create release directory
       run: |
         mkdir -p release
-        cp bin/Release/net6.0/Jellyfin.Plugin.CollectionImageGenerator.dll release/
-        cp bin/Release/net6.0/SixLabors.ImageSharp.dll release/
-        cp bin/Release/net6.0/SixLabors.ImageSharp.Drawing.dll release/
-        cp bin/Release/net6.0/SixLabors.Fonts.dll release/
+        cp bin/Release/net9.0/Jellyfin.Plugin.CollectionImageGenerator.dll release/
+        cp bin/Release/net9.0/SixLabors.ImageSharp.dll release/
+        cp bin/Release/net9.0/SixLabors.ImageSharp.Drawing.dll release/
+        cp bin/Release/net9.0/SixLabors.Fonts.dll release/
         cp Plugin.xml release/
     
     - name: Create zip file
@@ -66,7 +66,7 @@ jobs:
               {
                 "version": "${{ steps.get_version.outputs.VERSION }}",
                 "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/${{ steps.get_version.outputs.VERSION }})\n",
-                "targetAbi": "10.8.0.0",
+                "targetAbi": "10.11.0.0",
                 "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/${{ steps.get_version.outputs.VERSION }}/collection-image-generator-${{ steps.get_version.outputs.VERSION }}.zip",
                 "checksum": "${{ steps.calculate_checksum.outputs.CHECKSUM }}",
                 "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
