@@ -9,11 +9,11 @@
     "versions": [
       {
         "version": "0.0.0.21",
-        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/v0.0.0.21)\n",
+        "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/0.0.0.21)\n",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/v0.0.0.21/collection-image-generator-v0.0.0.21.zip",
-        "checksum": "e97156c9d173799616ebdf85e1e09c2d",
-        "timestamp": "2025-12-08T04:44:03Z"
+        "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/0.0.0.21/collection-image-generator-0.0.0.21.zip",
+        "checksum": "e89e05b6bfd3c9a27d3f39d04090e642",
+        "timestamp": "2025-12-08T04:57:17Z"
       },
       {
         "version": "0.0.0.20",
