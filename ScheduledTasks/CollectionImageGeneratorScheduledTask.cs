@@ -77,27 +77,8 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ScheduledTasks
         {
             var config = Plugin.Instance?.Configuration;
             
-            if (config != null && config.EnableScheduledTask)
-            {
-                // Parse the time of day from configuration
-                if (TimeSpan.TryParse(config.ScheduledTaskTimeOfDay, out var time))
-                {
-                    yield return new TaskTriggerInfo
-                    {
-                        Type = TaskTriggerInfoType.Daily,
-                        TimeOfDayTicks = time.Ticks
-                    };
-                }
-                else
-                {
-                    // Default to 3 AM if parsing fails
-                    yield return new TaskTriggerInfo
-                    {
-                        Type = TaskTriggerInfoType.Daily,
-                        TimeOfDayTicks = TimeSpan.FromHours(3).Ticks
-                    };
-                }
-            }
+            // Scheduled task triggers removed for compatibility
+            yield break;
         }
     }
 }
