@@ -2,112 +2,121 @@ name: Build and Release
 
 on:
   push:
-    tags:
-      - '*'
+    branches:
+      - main
 
 permissions:
-  contents: write  # This is required for creating releases
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+    - uses: actions/checkout@v4
       with:
-        dotnet-version: 9.0.x
-    
-    - name: Restore dependencies
-      run: dotnet restore
-    
-    - name: Build
-      run: dotnet build --configuration Release --no-restore /p:TreatWarningsAsErrors=false
-    
-    - name: Get version from tag
+        fetch-depth: 0
+
+    - name: Get next version
       id: get_version
       run: |
-        VERSION=${GITHUB_REF#refs/tags/}
-        VERSION=${VERSION#v}
-        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-    
-    - name: Create release directory
+        LATEST=$(git tag --sort=-v:refname | head -1)
+        if [ -z "$LATEST" ]; then
+          LATEST="0.0.0.0"
+        fi
+        NEXT=$(echo "$LATEST" | awk -F. '{$NF=$NF+1; print}' OFS=.)
+        echo "VERSION=$NEXT" >> $GITHUB_OUTPUT
+        echo "Next version: $NEXT"
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
       run: |
+        VERSION=${{ steps.get_version.outputs.VERSION }}
+        dotnet build --configuration Release --no-restore \
+          /p:TreatWarningsAsErrors=false \
+          /p:Version=$VERSION \
+          /p:AssemblyVersion=$VERSION \
+          /p:FileVersion=$VERSION
+
+    - name: Create release zip
+      run: |
+        VERSION=${{ steps.get_version.outputs.VERSION }}
         mkdir -p release
         cp bin/Release/net9.0/Jellyfin.Plugin.CollectionImageGenerator.dll release/
         cp bin/Release/net9.0/SixLabors.ImageSharp.dll release/
         cp bin/Release/net9.0/SixLabors.ImageSharp.Drawing.dll release/
         cp bin/Release/net9.0/SixLabors.Fonts.dll release/
-        cp Plugin.xml release/
-    
-    - name: Create zip file
-      run: |
         cd release
-        zip -r ../collection-image-generator-${{ steps.get_version.outputs.VERSION }}.zip .
-        cd ..
-    
+        zip -r ../collection-image-generator-${VERSION}.zip .
+
     - name: Calculate checksum
       id: calculate_checksum
       run: |
-        CHECKSUM=$(md5sum collection-image-generator-${{ steps.get_version.outputs.VERSION }}.zip | awk '{ print $1 }')
+        VERSION=${{ steps.get_version.outputs.VERSION }}
+        CHECKSUM=$(md5sum collection-image-generator-${VERSION}.zip | awk '{ print $1 }')
         echo "CHECKSUM=$CHECKSUM" >> $GITHUB_OUTPUT
-    
-    - name: Create manifest.json
+
+    - name: Generate manifest.json
       run: |
+        VERSION=${{ steps.get_version.outputs.VERSION }}
+        CHECKSUM=${{ steps.calculate_checksum.outputs.CHECKSUM }}
+        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
         cat > manifest.json << EOF
         [
           {
             "guid": "e29b0e3d-f15e-47b9-9b3d-ed3df892e33d",
             "name": "Collection Image Generator",
             "overview": "Automatically generates collage images for collections without images",
-            "description": "A Jellyfin plugin that automatically generates collage images for collections without images. It runs as a scheduled task once per day and creates collages from movie/show posters within each collection.",
-            "owner": "jellyfin-collection-image-generator",
+            "description": "A Jellyfin plugin that automatically generates collage images for collections without images.",
+            "owner": "johnpc",
             "category": "Metadata",
             "versions": [
               {
-                "version": "${{ steps.get_version.outputs.VERSION }}",
-                "changelog": "- See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/${{ steps.get_version.outputs.VERSION }})\n",
+                "version": "${VERSION}",
+                "changelog": "See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/${VERSION})",
                 "targetAbi": "10.11.0.0",
-                "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/${{ steps.get_version.outputs.VERSION }}/collection-image-generator-${{ steps.get_version.outputs.VERSION }}.zip",
-                "checksum": "${{ steps.calculate_checksum.outputs.CHECKSUM }}",
-                "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+                "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/${VERSION}/collection-image-generator-${VERSION}.zip",
+                "checksum": "${CHECKSUM}",
+                "timestamp": "${TIMESTAMP}"
               }
             ]
           }
         ]
         EOF
-    
-    - name: Create GitHub Release
-      id: create_release
-      uses: softprops/action-gh-release@v1
+
+    - name: Create tag and GitHub Release
+      run: |
+        VERSION=${{ steps.get_version.outputs.VERSION }}
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag "$VERSION"
+        git push origin "$VERSION"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Release
+      uses: softprops/action-gh-release@v2
       with:
+        tag_name: ${{ steps.get_version.outputs.VERSION }}
         files: |
           collection-image-generator-${{ steps.get_version.outputs.VERSION }}.zip
           manifest.json
-        name: Collection Image Generator ${{ steps.get_version.outputs.VERSION }}
         draft: false
         prerelease: false
-        body: |
-          # Collection Image Generator ${{ steps.get_version.outputs.VERSION }}
-          
-          A Jellyfin plugin that automatically generates collage images for collections without images.
-          
-          ## Installation
-          
-          1. Download the zip file
-          2. In Jellyfin, go to Dashboard → Plugins → Catalog
-          3. Click on "..." and select "Install from file"
-          4. Select the downloaded zip file
-          5. Restart Jellyfin
-          
-          ## Features
-          
-          - Automatically scans for collections without images
-          - Creates collage images from movie/show posters within each collection
-          - Runs as a scheduled task once per day
-          - Configurable through the Jellyfin admin dashboard
-          - Supports manual execution through the configuration page
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Update manifest on main
+      run: |
+        git fetch origin main
+        git checkout main
+        git add manifest.json
+        git commit -m "chore: update manifest for ${{ steps.get_version.outputs.VERSION }}" || true
+        git push origin main
