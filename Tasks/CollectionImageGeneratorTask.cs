@@ -114,6 +114,12 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                                 .Take(sampleSize)
                                 .ToList();
 
+                            // Pad to at least 4 items by duplicating posters to avoid stretched images
+                            while (sampleItems.Count < 4 && sampleItems.Count > 0)
+                            {
+                                sampleItems.Add(sampleItems[sampleItems.Count % itemsWithImages.Count]);
+                            }
+
                             _logger.LogInformation("Selected {Count} items for collage in collection {Name}",
                                 sampleItems.Count, boxSet.Name);
 
