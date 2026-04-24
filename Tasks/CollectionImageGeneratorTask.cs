@@ -115,7 +115,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                                 .ToList();
 
                             // Pad to at least 4 items by duplicating posters to avoid stretched images
-                            while (sampleItems.Count < 4 && sampleItems.Count > 0)
+                            while (sampleItems.Count > 1 && sampleItems.Count < 4)
                             {
                                 sampleItems.Add(sampleItems[sampleItems.Count % itemsWithImages.Count]);
                             }
