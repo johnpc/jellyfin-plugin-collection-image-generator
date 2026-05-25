@@ -65,7 +65,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
             var config = Plugin.Instance!.Configuration;
             var collections = _libraryManager.GetItemList(new MediaBrowser.Controller.Entities.InternalItemsQuery
             {
-                IncludeItemTypes = new[] { BaseItemKind.BoxSet }
+                IncludeItemTypes = new[] { BaseItemKind.BoxSet },
             });
 
             var totalCollections = collections.Count;
@@ -89,8 +89,8 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                         _logger.LogInformation("Collection path: {Path}", boxSet.Path);
 
                         // Get items in the collection
-                        var collectionItems = boxSet.GetLinkedChildren();
-                        _logger.LogInformation("Collection {Name} has {Count} items", boxSet.Name, collectionItems.Count());
+                        var collectionItems = boxSet.GetLinkedChildren().ToList();
+                        _logger.LogInformation("Collection {Name} has {Count} items", boxSet.Name, collectionItems.Count);
 
                         var itemsWithImages = collectionItems
                             .Where(i => !string.IsNullOrEmpty(i.PrimaryImagePath) && File.Exists(i.PrimaryImagePath))
@@ -103,8 +103,10 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                             // Log the first few items with their image paths
                             foreach (var item in itemsWithImages.Take(3))
                             {
-                                _logger.LogInformation("Item in collection: {ItemName}, Image path: {ImagePath}",
-                                    item.Name, item.PrimaryImagePath);
+                                _logger.LogInformation(
+                                    "Item in collection: {ItemName}, Image path: {ImagePath}",
+                                    item.Name,
+                                    item.PrimaryImagePath);
                             }
 
                             // Take a sample of items for the collage
@@ -120,8 +122,10 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                                 sampleItems.Add(sampleItems[sampleItems.Count % itemsWithImages.Count]);
                             }
 
-                            _logger.LogInformation("Selected {Count} items for collage in collection {Name}",
-                                sampleItems.Count, boxSet.Name);
+                            _logger.LogInformation(
+                                "Selected {Count} items for collage in collection {Name}",
+                                sampleItems.Count,
+                                boxSet.Name);
 
                             // Generate and save the collage
                             await GenerateAndSaveCollageAsync(boxSet, sampleItems, cancellationToken).ConfigureAwait(false);
@@ -157,7 +161,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                     yield return new TaskTriggerInfo
                     {
                         Type = TaskTriggerInfoType.DailyTrigger,
-                        TimeOfDayTicks = time.Ticks
+                        TimeOfDayTicks = time.Ticks,
                     };
                 }
                 else
@@ -166,10 +170,32 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                     yield return new TaskTriggerInfo
                     {
                         Type = TaskTriggerInfoType.DailyTrigger,
-                        TimeOfDayTicks = TimeSpan.FromHours(3).Ticks
+                        TimeOfDayTicks = TimeSpan.FromHours(3).Ticks,
                     };
                 }
             }
+        }
+
+        /// <summary>
+        /// Calculates grid dimensions (rows, cols) for a given image count.
+        /// </summary>
+        /// <param name="count">The number of images.</param>
+        /// <returns>A tuple of (rows, cols) representing grid dimensions.</returns>
+        internal static (int Rows, int Cols) GetGridDimensions(int count)
+        {
+            return count switch
+            {
+                1 => (1, 1),
+                2 => (1, 2),
+                3 => (1, 3),
+                4 => (2, 2),
+                5 => (2, 3),
+                6 => (2, 3),
+                7 => (3, 3),
+                8 => (3, 3),
+                9 => (3, 3),
+                _ => (3, 3),
+            };
         }
 
         private async Task GenerateAndSaveCollageAsync(BoxSet collection, List<BaseItem> items, CancellationToken cancellationToken)
@@ -180,8 +206,12 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                 var imageCount = items.Count;
                 var (rows, cols) = GetGridDimensions(imageCount);
 
-                _logger.LogInformation("Creating collage with {Count} images in a {Rows}x{Cols} grid for collection {Name}",
-                    imageCount, rows, cols, collection.Name);
+                _logger.LogInformation(
+                    "Creating collage with {Count} images in a {Rows}x{Cols} grid for collection {Name}",
+                    imageCount,
+                    rows,
+                    cols,
+                    collection.Name);
 
                 // Create a new image with appropriate dimensions
                 const int targetWidth = 1000;
@@ -213,7 +243,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                     {
                         _logger.LogInformation("Loading image for item {ItemName} from {Path}", item.Name, item.PrimaryImagePath);
 
-                        using var posterImage = await Image.LoadAsync<Rgba32>(item.PrimaryImagePath, cancellationToken);
+                        using var posterImage = await Image.LoadAsync<Rgba32>(item.PrimaryImagePath, cancellationToken).ConfigureAwait(false);
 
                         // Resize the poster to fit in the grid
                         posterImage.Mutate(x => x.Resize(posterWidth, posterHeight));
@@ -236,7 +266,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                 // First save the collage to a temporary file
                 var tempFile = Path.Combine(Path.GetTempPath(), $"collage_{collection.Id}.jpg");
                 _logger.LogInformation("Saving temporary collage to {Path}", tempFile);
-                await outputImage.SaveAsJpegAsync(tempFile, cancellationToken);
+                await outputImage.SaveAsJpegAsync(tempFile, cancellationToken).ConfigureAwait(false);
 
                 if (File.Exists(tempFile))
                 {
@@ -262,10 +292,10 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                         _logger.LogInformation("Setting primary image for collection {Name} using provider manager", collection.Name);
 
                         // Read the image file into a byte array
-                        byte[] imageBytes = await File.ReadAllBytesAsync(tempFile, cancellationToken);
+                        byte[] imageBytes = await File.ReadAllBytesAsync(tempFile, cancellationToken).ConfigureAwait(false);
 
                         // Set the image using the provider manager
-                        await SetCollectionImageAsync(collection, imageBytes, cancellationToken);
+                        await SetCollectionImageAsync(collection, imageBytes, cancellationToken).ConfigureAwait(false);
 
                         // Force a refresh of the collection
                         _logger.LogInformation("Refreshing metadata for collection {Name}", collection.Name);
@@ -319,21 +349,22 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                 Directory.CreateDirectory(folderPath!);
 
                 // Save the image
-                File.WriteAllBytes(outputPath, imageData);
+                await File.WriteAllBytesAsync(outputPath, imageData, cancellationToken).ConfigureAwait(false);
 
                 _logger.LogInformation("Saved image to {Path}", outputPath);
 
-                collection.SetImage(new ItemImageInfo
+                collection.SetImage(
+                    new ItemImageInfo
                     {
                         Path = outputPath,
-                        Type = ImageType.Primary
+                        Type = ImageType.Primary,
                     }, 0);
 
                 await _libraryManager.UpdateItemAsync(
                     collection,
                     collection.GetParent(),
                     ItemUpdateType.ImageUpdate,
-                    CancellationToken.None);
+                    CancellationToken.None).ConfigureAwait(false);
 
                 // Force a refresh of the collection
                 _logger.LogInformation("Refreshing metadata for collection {Name}", collection.Name);
@@ -364,23 +395,6 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                 _logger.LogError(ex, "Error setting primary image for collection {Name}", collection.Name);
                 throw;
             }
-        }
-
-        private static (int rows, int cols) GetGridDimensions(int count)
-        {
-            return count switch
-            {
-                1 => (1, 1),
-                2 => (1, 2),
-                3 => (1, 3),
-                4 => (2, 2),
-                5 => (2, 3), // 2x3 with one empty space
-                6 => (2, 3),
-                7 => (3, 3), // 3x3 with two empty spaces
-                8 => (3, 3), // 3x3 with one empty space
-                9 => (3, 3),
-                _ => (3, 3), // Default to 3x3 for any larger number
-            };
         }
     }
 }

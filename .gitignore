@@ -53,5 +53,7 @@ Temporary Items
 *.zip
 
 # Test output
-
 test/output
+
+# Coverage output
+coverage/

@@ -52,7 +52,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Api
 
             // Update the plugin configuration
             Plugin.Instance.Configuration = configuration;
-            
+
             // Save the configuration directly using the plugin's SaveConfiguration method
             Plugin.Instance.SaveConfiguration();
 

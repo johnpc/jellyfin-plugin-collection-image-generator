@@ -24,16 +24,16 @@ namespace Jellyfin.Plugin.CollectionImageGenerator
             Instance = this;
         }
 
+        /// <summary>
+        /// Gets the current plugin instance.
+        /// </summary>
+        public static Plugin? Instance { get; private set; }
+
         /// <inheritdoc />
         public override string Name => "Collection Image Generator";
 
         /// <inheritdoc />
         public override Guid Id => Guid.Parse("e29b0e3d-f15e-47b9-9b3d-ed3df892e33d");
-
-        /// <summary>
-        /// Gets the current plugin instance.
-        /// </summary>
-        public static Plugin? Instance { get; private set; }
 
         /// <summary>
         /// Gets or sets the plugin configuration.
@@ -53,7 +53,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator
                 {
                     Name = Name,
                     EmbeddedResourcePath = GetType().Namespace + ".Configuration.configPage.html",
-                }
+                },
             };
         }
     }
