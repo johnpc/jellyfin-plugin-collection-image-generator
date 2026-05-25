@@ -1,25 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Only rules that directly conflict with modern C# conventions are suppressed here.
+  Each suppression has a documented reason. Do not add suppressions to avoid fixing code.
+-->
 <RuleSet Name="Rules for Jellyfin.Plugin.CollectionImageGenerator" Description="Code analysis rules for Jellyfin.Plugin.CollectionImageGenerator.csproj" ToolsVersion="14.0">
   <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.Analyzers">
-    <Rule Id="SA1027" Action="None" />
+    <!-- SA1101: Prefix local calls with this. — We use _camelCase for fields instead of this.field -->
     <Rule Id="SA1101" Action="None" />
-    <Rule Id="SA1116" Action="None" />
-    <Rule Id="SA1117" Action="None" />
-    <Rule Id="SA1118" Action="None" />
-    <Rule Id="SA1122" Action="None" />
-    <Rule Id="SA1133" Action="None" />
-    <Rule Id="SA1134" Action="None" />
+    <!-- SA1200: Using directives must be inside namespace — Incompatible with file-scoped namespaces (C# 10+) -->
     <Rule Id="SA1200" Action="None" />
-    <Rule Id="SA1202" Action="None" />
-    <Rule Id="SA1204" Action="None" />
+    <!-- SA1309: Field names must not begin with underscore — Contradicts the _camelCase convention we enforce via .editorconfig -->
     <Rule Id="SA1309" Action="None" />
-    <Rule Id="SA1413" Action="None" />
-    <Rule Id="SA1512" Action="None" />
-    <Rule Id="SA1516" Action="None" />
-    <Rule Id="SA1600" Action="None" />
-    <Rule Id="SA1601" Action="None" />
-    <Rule Id="SA1602" Action="None" />
+    <!-- SA1633: File must have header — No copyright header needed for personal open-source project -->
     <Rule Id="SA1633" Action="None" />
-    <Rule Id="SA1649" Action="None" />
   </Rules>
 </RuleSet>

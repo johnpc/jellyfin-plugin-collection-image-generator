@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Jellyfin.Plugin.CollectionImageGenerator.AcceptanceTests/Jellyfin.Plugin.CollectionImageGenerator.AcceptanceTests.csproj" />
+  <Project Path="Jellyfin.Plugin.CollectionImageGenerator.csproj" />
+  <Project Path="Jellyfin.Plugin.CollectionImageGenerator.Tests/Jellyfin.Plugin.CollectionImageGenerator.Tests.csproj" />
+</Solution>
