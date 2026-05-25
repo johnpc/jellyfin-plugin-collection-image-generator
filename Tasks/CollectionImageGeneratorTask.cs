@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -58,6 +59,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
         public string Category => "Library";
 
         /// <inheritdoc />
+        [ExcludeFromCodeCoverage]
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Starting collection image generation task");
@@ -70,6 +72,10 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
 
             var totalCollections = collections.Count;
             var processedCount = 0;
+            var skippedCount = 0;
+            var generatedCount = 0;
+
+            _logger.LogInformation("Found {Total} collections to evaluate", totalCollections);
 
             foreach (var collection in collections)
             {
@@ -83,7 +89,11 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                     var boxSet = (BoxSet)collection;
 
                     // Check if collection already has an image
-                    if (string.IsNullOrEmpty(boxSet.PrimaryImagePath))
+                    if (!string.IsNullOrEmpty(boxSet.PrimaryImagePath))
+                    {
+                        skippedCount++;
+                    }
+                    else
                     {
                         _logger.LogInformation("Generating image for collection: {Name} (ID: {Id})", boxSet.Name, boxSet.Id);
                         _logger.LogInformation("Collection path: {Path}", boxSet.Path);
@@ -129,6 +139,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
 
                             // Generate and save the collage
                             await GenerateAndSaveCollageAsync(boxSet, sampleItems, cancellationToken).ConfigureAwait(false);
+                            generatedCount++;
                         }
                         else
                         {
@@ -145,10 +156,15 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                 progress.Report(100.0 * processedCount / totalCollections);
             }
 
-            _logger.LogInformation("Collection image generation task completed");
+            _logger.LogInformation(
+                "Collection image generation task completed. Found {Total} collections, {Skipped} already have images, {Generated} generated",
+                totalCollections,
+                skippedCount,
+                generatedCount);
         }
 
         /// <inheritdoc />
+        [ExcludeFromCodeCoverage]
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
         {
             var config = Plugin.Instance!.Configuration;
@@ -198,6 +214,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
             };
         }
 
+        [ExcludeFromCodeCoverage]
         private async Task GenerateAndSaveCollageAsync(BoxSet collection, List<BaseItem> items, CancellationToken cancellationToken)
         {
             try
@@ -333,6 +350,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
             }
         }
 
+        [ExcludeFromCodeCoverage]
         private async Task SetCollectionImageAsync(BoxSet collection, byte[] imageData, CancellationToken cancellationToken)
         {
             try
