@@ -72,7 +72,7 @@ jobs:
     - name: Build
       run: |
         VERSION=${{ steps.get_version.outputs.VERSION }}
-        dotnet build --configuration Release --no-restore \
+        dotnet build Jellyfin.Plugin.CollectionImageGenerator.csproj --configuration Release --no-restore \
           /p:TreatWarningsAsErrors=true \
           /p:Version=$VERSION \
           /p:AssemblyVersion=$VERSION \
