@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using Jellyfin.Plugin.CollectionImageGenerator.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
@@ -11,6 +12,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator
     /// <summary>
     /// The main plugin class.
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     {
         /// <summary>

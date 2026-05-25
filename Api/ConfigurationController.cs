@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using Jellyfin.Plugin.CollectionImageGenerator.Configuration;
 using MediaBrowser.Common.Configuration;
 using Microsoft.AspNetCore.Http;
@@ -9,6 +10,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Api
     /// <summary>
     /// The configuration controller for the Collection Image Generator plugin.
     /// </summary>
+    [ExcludeFromCodeCoverage]
     [ApiController]
     [Route("Plugins/CollectionImageGenerator/Configuration")]
     public class ConfigurationController : ControllerBase

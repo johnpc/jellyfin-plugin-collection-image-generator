@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.CollectionImageGenerator.Tasks;
 using MediaBrowser.Controller.Collections;
@@ -14,6 +15,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Api
     /// <summary>
     /// The collection image generator controller.
     /// </summary>
+    [ExcludeFromCodeCoverage]
     [ApiController]
     [Route("CollectionImageGenerator")]
     public class CollectionImageGeneratorController : ControllerBase

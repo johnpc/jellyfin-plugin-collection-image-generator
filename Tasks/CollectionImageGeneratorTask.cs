@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -58,6 +59,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
         public string Category => "Library";
 
         /// <inheritdoc />
+        [ExcludeFromCodeCoverage]
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Starting collection image generation task");
@@ -162,6 +164,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
         }
 
         /// <inheritdoc />
+        [ExcludeFromCodeCoverage]
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
         {
             var config = Plugin.Instance!.Configuration;
@@ -211,6 +214,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
             };
         }
 
+        [ExcludeFromCodeCoverage]
         private async Task GenerateAndSaveCollageAsync(BoxSet collection, List<BaseItem> items, CancellationToken cancellationToken)
         {
             try
@@ -346,6 +350,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
             }
         }
 
+        [ExcludeFromCodeCoverage]
         private async Task SetCollectionImageAsync(BoxSet collection, byte[] imageData, CancellationToken cancellationToken)
         {
             try
