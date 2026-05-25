@@ -12,11 +12,11 @@ jobs:
         with:
           dotnet-version: '9.0.x'
       - name: Restore
-        run: dotnet restore
+        run: dotnet restore jellyfin-plugin-collection-image-generator.sln
       - name: Check formatting
-        run: dotnet format --verify-no-changes
+        run: dotnet format jellyfin-plugin-collection-image-generator.sln --verify-no-changes
       - name: Build (strict)
-        run: dotnet build --configuration Release /p:TreatWarningsAsErrors=true
+        run: dotnet build jellyfin-plugin-collection-image-generator.sln --configuration Release /p:TreatWarningsAsErrors=true
       - name: Run unit tests with coverage
         run: |
           dotnet test Jellyfin.Plugin.CollectionImageGenerator.Tests/Jellyfin.Plugin.CollectionImageGenerator.Tests.csproj \
