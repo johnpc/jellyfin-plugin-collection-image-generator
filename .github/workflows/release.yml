@@ -152,4 +152,4 @@ jobs:
         git checkout main
         git add manifest.json
         git commit -m "chore: update manifest for ${{ steps.get_version.outputs.VERSION }}" || true
-        git push origin main
+        git push origin main || echo "::warning::Could not push manifest to main (branch protection). Manifest is available in the release assets."
