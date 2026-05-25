@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>json</Format>
+          <Include>[Jellyfin.Plugin.CollectionImageGenerator]*</Include>
+          <Exclude>[Jellyfin.Plugin.CollectionImageGenerator]Jellyfin.Plugin.CollectionImageGenerator.Tasks.CollectionImageGeneratorTask,[Jellyfin.Plugin.CollectionImageGenerator]Jellyfin.Plugin.CollectionImageGenerator.Api.*,[Jellyfin.Plugin.CollectionImageGenerator]Jellyfin.Plugin.CollectionImageGenerator.Plugin</Exclude>
+          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

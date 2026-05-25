@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -35,6 +36,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ImageProcessor
         /// <param name="outputPath">The path where the collage should be saved.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        [ExcludeFromCodeCoverage]
         public async Task CreateCollageAsync(List<string> imagePaths, string outputPath, CancellationToken cancellationToken)
         {
             try
@@ -199,14 +201,144 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ImageProcessor
             return luminance < 0.5 ? Color.White : Color.Black;
         }
 
-        private static (int Width, int Height) Get3x3CellSize(int canvasWidth, int canvasHeight, int padding)
+        /// <summary>
+        /// Calculates cell size for a 3x3 grid layout.
+        /// </summary>
+        /// <param name="canvasWidth">The canvas width.</param>
+        /// <param name="canvasHeight">The canvas height.</param>
+        /// <param name="padding">The padding between cells.</param>
+        /// <returns>A tuple of (Width, Height) for each cell.</returns>
+        internal static (int Width, int Height) Get3x3CellSize(int canvasWidth, int canvasHeight, int padding)
         {
             return ((canvasWidth - (padding * 4)) / 3, (canvasHeight - (padding * 4)) / 3);
         }
 
-        private static (int Width, int Height) Get2x2CellSize(int canvasWidth, int canvasHeight, int padding)
+        /// <summary>
+        /// Calculates cell size for a 2x2 grid layout.
+        /// </summary>
+        /// <param name="canvasWidth">The canvas width.</param>
+        /// <param name="canvasHeight">The canvas height.</param>
+        /// <param name="padding">The padding between cells.</param>
+        /// <returns>A tuple of (Width, Height) for each cell.</returns>
+        internal static (int Width, int Height) Get2x2CellSize(int canvasWidth, int canvasHeight, int padding)
         {
             return ((canvasWidth - (padding * 3)) / 2, (canvasHeight - (padding * 3)) / 2);
+        }
+
+        /// <summary>
+        /// Samples colors from an image at the given rate.
+        /// </summary>
+        /// <param name="image">The image to sample from.</param>
+        /// <param name="sampleRate">The pixel sampling rate (every Nth pixel).</param>
+        /// <returns>A list of sampled RGBA colors.</returns>
+        internal static List<Rgba32> SampleImageColors(Image<Rgba32> image, int sampleRate = 3)
+        {
+            var colors = new List<Rgba32>();
+
+            using var resizedImage = image.Clone();
+            resizedImage.Mutate(x => x.Resize(100, 150));
+
+            for (var y = 0; y < resizedImage.Height; y += sampleRate)
+            {
+                for (var x = 0; x < resizedImage.Width; x += sampleRate)
+                {
+                    var pixel = resizedImage[x, y];
+
+                    if (pixel.A > 128)
+                    {
+                        colors.Add(pixel);
+                    }
+                }
+            }
+
+            return colors;
+        }
+
+        /// <summary>
+        /// Performs k-means clustering on a list of colors.
+        /// </summary>
+        /// <param name="colors">The colors to cluster.</param>
+        /// <param name="k">The number of clusters.</param>
+        /// <returns>A list of color clusters.</returns>
+        internal static List<ColorCluster> PerformKMeansClustering(List<Rgba32> colors, int k)
+        {
+            if (colors.Count == 0 || k <= 0)
+            {
+                return new List<ColorCluster>();
+            }
+
+            var clusters = new List<ColorCluster>();
+
+            for (var i = 0; i < k; i++)
+            {
+                var index = i * colors.Count / k;
+                var seedColor = colors[index];
+                clusters.Add(new ColorCluster
+                {
+                    CentroidR = seedColor.R,
+                    CentroidG = seedColor.G,
+                    CentroidB = seedColor.B,
+                    Colors = new List<Rgba32>(),
+                });
+            }
+
+            for (var iteration = 0; iteration < 10; iteration++)
+            {
+                foreach (var cluster in clusters)
+                {
+                    cluster.Colors.Clear();
+                }
+
+                foreach (var color in colors)
+                {
+                    var nearestCluster = clusters
+                        .OrderBy(c => ColorDistance(color, c.CentroidR, c.CentroidG, c.CentroidB))
+                        .First();
+                    nearestCluster.Colors.Add(color);
+                }
+
+                var hasChanged = false;
+                foreach (var cluster in clusters)
+                {
+                    if (cluster.Colors.Count > 0)
+                    {
+                        var avgR = (byte)cluster.Colors.Average(c => c.R);
+                        var avgG = (byte)cluster.Colors.Average(c => c.G);
+                        var avgB = (byte)cluster.Colors.Average(c => c.B);
+
+                        if (avgR != cluster.CentroidR || avgG != cluster.CentroidG || avgB != cluster.CentroidB)
+                        {
+                            hasChanged = true;
+                            cluster.CentroidR = avgR;
+                            cluster.CentroidG = avgG;
+                            cluster.CentroidB = avgB;
+                        }
+                    }
+                }
+
+                if (!hasChanged)
+                {
+                    break;
+                }
+            }
+
+            return clusters.Where(c => c.Colors.Count > 0).ToList();
+        }
+
+        /// <summary>
+        /// Calculates the Euclidean distance between a color and a centroid.
+        /// </summary>
+        /// <param name="color">The color to measure from.</param>
+        /// <param name="centroidR">The red component of the centroid.</param>
+        /// <param name="centroidG">The green component of the centroid.</param>
+        /// <param name="centroidB">The blue component of the centroid.</param>
+        /// <returns>The Euclidean distance in RGB space.</returns>
+        internal static double ColorDistance(Rgba32 color, byte centroidR, byte centroidG, byte centroidB)
+        {
+            var rDiff = color.R - centroidR;
+            var gDiff = color.G - centroidG;
+            var bDiff = color.B - centroidB;
+            return Math.Sqrt((rDiff * rDiff) + (gDiff * gDiff) + (bDiff * bDiff));
         }
 
         private static void AddStandardRow(
@@ -365,102 +497,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.ImageProcessor
             return positions;
         }
 
-        private static List<Rgba32> SampleImageColors(Image<Rgba32> image, int sampleRate = 3)
-        {
-            var colors = new List<Rgba32>();
-
-            using var resizedImage = image.Clone();
-            resizedImage.Mutate(x => x.Resize(100, 150));
-
-            for (var y = 0; y < resizedImage.Height; y += sampleRate)
-            {
-                for (var x = 0; x < resizedImage.Width; x += sampleRate)
-                {
-                    var pixel = resizedImage[x, y];
-
-                    if (pixel.A > 128)
-                    {
-                        colors.Add(pixel);
-                    }
-                }
-            }
-
-            return colors;
-        }
-
-        private static List<ColorCluster> PerformKMeansClustering(List<Rgba32> colors, int k)
-        {
-            if (colors.Count == 0 || k <= 0)
-            {
-                return new List<ColorCluster>();
-            }
-
-            var clusters = new List<ColorCluster>();
-
-            for (var i = 0; i < k; i++)
-            {
-                var index = i * colors.Count / k;
-                var seedColor = colors[index];
-                clusters.Add(new ColorCluster
-                {
-                    CentroidR = seedColor.R,
-                    CentroidG = seedColor.G,
-                    CentroidB = seedColor.B,
-                    Colors = new List<Rgba32>(),
-                });
-            }
-
-            for (var iteration = 0; iteration < 10; iteration++)
-            {
-                foreach (var cluster in clusters)
-                {
-                    cluster.Colors.Clear();
-                }
-
-                foreach (var color in colors)
-                {
-                    var nearestCluster = clusters
-                        .OrderBy(c => ColorDistance(color, c.CentroidR, c.CentroidG, c.CentroidB))
-                        .First();
-                    nearestCluster.Colors.Add(color);
-                }
-
-                var hasChanged = false;
-                foreach (var cluster in clusters)
-                {
-                    if (cluster.Colors.Count > 0)
-                    {
-                        var avgR = (byte)cluster.Colors.Average(c => c.R);
-                        var avgG = (byte)cluster.Colors.Average(c => c.G);
-                        var avgB = (byte)cluster.Colors.Average(c => c.B);
-
-                        if (avgR != cluster.CentroidR || avgG != cluster.CentroidG || avgB != cluster.CentroidB)
-                        {
-                            hasChanged = true;
-                            cluster.CentroidR = avgR;
-                            cluster.CentroidG = avgG;
-                            cluster.CentroidB = avgB;
-                        }
-                    }
-                }
-
-                if (!hasChanged)
-                {
-                    break;
-                }
-            }
-
-            return clusters.Where(c => c.Colors.Count > 0).ToList();
-        }
-
-        private static double ColorDistance(Rgba32 color, byte centroidR, byte centroidG, byte centroidB)
-        {
-            var rDiff = color.R - centroidR;
-            var gDiff = color.G - centroidG;
-            var bDiff = color.B - centroidB;
-            return Math.Sqrt((rDiff * rDiff) + (gDiff * gDiff) + (bDiff * bDiff));
-        }
-
+        [ExcludeFromCodeCoverage]
         private async Task<Color> GetDynamicBackgroundColorAsync(List<string> imagePaths, CancellationToken cancellationToken)
         {
             try

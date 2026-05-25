@@ -70,6 +70,10 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
 
             var totalCollections = collections.Count;
             var processedCount = 0;
+            var skippedCount = 0;
+            var generatedCount = 0;
+
+            _logger.LogInformation("Found {Total} collections to evaluate", totalCollections);
 
             foreach (var collection in collections)
             {
@@ -83,7 +87,11 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                     var boxSet = (BoxSet)collection;
 
                     // Check if collection already has an image
-                    if (string.IsNullOrEmpty(boxSet.PrimaryImagePath))
+                    if (!string.IsNullOrEmpty(boxSet.PrimaryImagePath))
+                    {
+                        skippedCount++;
+                    }
+                    else
                     {
                         _logger.LogInformation("Generating image for collection: {Name} (ID: {Id})", boxSet.Name, boxSet.Id);
                         _logger.LogInformation("Collection path: {Path}", boxSet.Path);
@@ -129,6 +137,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
 
                             // Generate and save the collage
                             await GenerateAndSaveCollageAsync(boxSet, sampleItems, cancellationToken).ConfigureAwait(false);
+                            generatedCount++;
                         }
                         else
                         {
@@ -145,7 +154,11 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                 progress.Report(100.0 * processedCount / totalCollections);
             }
 
-            _logger.LogInformation("Collection image generation task completed");
+            _logger.LogInformation(
+                "Collection image generation task completed. Found {Total} collections, {Skipped} already have images, {Generated} generated",
+                totalCollections,
+                skippedCount,
+                generatedCount);
         }
 
         /// <inheritdoc />
