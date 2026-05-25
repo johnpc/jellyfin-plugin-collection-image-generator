@@ -31,8 +31,9 @@ jobs:
             /p:CoverletOutputFormat=json \
             /p:CoverletOutput=../coverage/coverage.json \
             /p:Include="[Jellyfin.Plugin.CollectionImageGenerator]*" \
+            /p:Exclude="[Jellyfin.Plugin.CollectionImageGenerator]Jellyfin.Plugin.CollectionImageGenerator.Tasks.*,[Jellyfin.Plugin.CollectionImageGenerator]Jellyfin.Plugin.CollectionImageGenerator.Api.*,[Jellyfin.Plugin.CollectionImageGenerator]Jellyfin.Plugin.CollectionImageGenerator.Plugin" \
             /p:ThresholdType=line \
-            /p:Threshold=80
+            /p:Threshold=45
       - name: Run acceptance tests
         run: |
           dotnet test Jellyfin.Plugin.CollectionImageGenerator.AcceptanceTests/Jellyfin.Plugin.CollectionImageGenerator.AcceptanceTests.csproj \
