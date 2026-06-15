@@ -19,7 +19,7 @@ public class ColorAnalysisTests
     {
         var color = new Rgba32(100, 150, 200);
 
-        var distance = CollageGenerator.ColorDistance(color, 100, 150, 200);
+        var distance = ColorAnalyzer.ColorDistance(color, 100, 150, 200);
 
         distance.Should().Be(0.0);
     }
@@ -32,7 +32,7 @@ public class ColorAnalysisTests
     {
         var black = new Rgba32(0, 0, 0);
 
-        var distance = CollageGenerator.ColorDistance(black, 255, 255, 255);
+        var distance = ColorAnalyzer.ColorDistance(black, 255, 255, 255);
 
         // sqrt(255^2 + 255^2 + 255^2) = sqrt(195075) ~= 441.67
         distance.Should().BeApproximately(441.67, 0.01);
@@ -47,8 +47,8 @@ public class ColorAnalysisTests
         var color1 = new Rgba32(50, 100, 150);
         var color2 = new Rgba32(200, 50, 75);
 
-        var dist1 = CollageGenerator.ColorDistance(color1, color2.R, color2.G, color2.B);
-        var dist2 = CollageGenerator.ColorDistance(color2, color1.R, color1.G, color1.B);
+        var dist1 = ColorAnalyzer.ColorDistance(color1, color2.R, color2.G, color2.B);
+        var dist2 = ColorAnalyzer.ColorDistance(color2, color1.R, color1.G, color1.B);
 
         dist1.Should().BeApproximately(dist2, 0.001);
     }
@@ -65,7 +65,7 @@ public class ColorAnalysisTests
     {
         var color = new Rgba32(r1, g1, b1);
 
-        var distance = CollageGenerator.ColorDistance(color, r2, g2, b2);
+        var distance = ColorAnalyzer.ColorDistance(color, r2, g2, b2);
 
         distance.Should().BeApproximately(expected, 0.001);
     }
@@ -78,7 +78,7 @@ public class ColorAnalysisTests
     {
         using var image = new Image<Rgba32>(100, 150, new Rgba32(128, 64, 32, 255));
 
-        var colors = CollageGenerator.SampleImageColors(image, 3);
+        var colors = ColorAnalyzer.SampleImageColors(image, 3);
 
         colors.Should().NotBeEmpty();
         colors.Should().AllSatisfy(c =>
@@ -97,7 +97,7 @@ public class ColorAnalysisTests
     {
         using var image = new Image<Rgba32>(100, 150, new Rgba32(128, 64, 32, 0));
 
-        var colors = CollageGenerator.SampleImageColors(image, 3);
+        var colors = ColorAnalyzer.SampleImageColors(image, 3);
 
         colors.Should().BeEmpty();
     }
@@ -110,7 +110,7 @@ public class ColorAnalysisTests
     {
         using var image = new Image<Rgba32>(100, 150, new Rgba32(128, 64, 32, 100));
 
-        var colors = CollageGenerator.SampleImageColors(image, 3);
+        var colors = ColorAnalyzer.SampleImageColors(image, 3);
 
         colors.Should().BeEmpty();
     }
@@ -123,7 +123,7 @@ public class ColorAnalysisTests
     {
         using var image = new Image<Rgba32>(100, 150, new Rgba32(128, 64, 32, 200));
 
-        var colors = CollageGenerator.SampleImageColors(image, 3);
+        var colors = ColorAnalyzer.SampleImageColors(image, 3);
 
         colors.Should().NotBeEmpty();
     }
@@ -136,8 +136,8 @@ public class ColorAnalysisTests
     {
         using var image = new Image<Rgba32>(100, 150, new Rgba32(128, 64, 32, 255));
 
-        var colorsRate3 = CollageGenerator.SampleImageColors(image, 3);
-        var colorsRate6 = CollageGenerator.SampleImageColors(image, 6);
+        var colorsRate3 = ColorAnalyzer.SampleImageColors(image, 3);
+        var colorsRate6 = ColorAnalyzer.SampleImageColors(image, 6);
 
         colorsRate3.Count.Should().BeGreaterThan(colorsRate6.Count);
     }
@@ -150,7 +150,7 @@ public class ColorAnalysisTests
     {
         var colors = new List<Rgba32>();
 
-        var clusters = CollageGenerator.PerformKMeansClustering(colors, 4);
+        var clusters = ColorAnalyzer.PerformKMeansClustering(colors, 4);
 
         clusters.Should().BeEmpty();
     }
@@ -163,7 +163,7 @@ public class ColorAnalysisTests
     {
         var colors = new List<Rgba32> { new Rgba32(100, 100, 100) };
 
-        var clusters = CollageGenerator.PerformKMeansClustering(colors, 0);
+        var clusters = ColorAnalyzer.PerformKMeansClustering(colors, 0);
 
         clusters.Should().BeEmpty();
     }
@@ -176,7 +176,7 @@ public class ColorAnalysisTests
     {
         var colors = new List<Rgba32> { new Rgba32(100, 100, 100) };
 
-        var clusters = CollageGenerator.PerformKMeansClustering(colors, -1);
+        var clusters = ColorAnalyzer.PerformKMeansClustering(colors, -1);
 
         clusters.Should().BeEmpty();
     }
@@ -189,7 +189,7 @@ public class ColorAnalysisTests
     {
         var colors = new List<Rgba32> { new Rgba32(100, 150, 200) };
 
-        var clusters = CollageGenerator.PerformKMeansClustering(colors, 1);
+        var clusters = ColorAnalyzer.PerformKMeansClustering(colors, 1);
 
         clusters.Should().HaveCount(1);
         clusters[0].CentroidR.Should().Be(100);
@@ -218,7 +218,7 @@ public class ColorAnalysisTests
             colors.Add(new Rgba32(20, 20, 200));
         }
 
-        var clusters = CollageGenerator.PerformKMeansClustering(colors, 2);
+        var clusters = ColorAnalyzer.PerformKMeansClustering(colors, 2);
 
         clusters.Should().HaveCount(2);
 
@@ -242,7 +242,7 @@ public class ColorAnalysisTests
             colors.Add(new Rgba32(128, 128, 128));
         }
 
-        var clusters = CollageGenerator.PerformKMeansClustering(colors, 3);
+        var clusters = ColorAnalyzer.PerformKMeansClustering(colors, 3);
 
         // All colors are the same, so some clusters may end up empty
         clusters.Should().NotBeEmpty();
@@ -266,7 +266,7 @@ public class ColorAnalysisTests
             new Rgba32(200, 200, 200),
         };
 
-        var clusters = CollageGenerator.PerformKMeansClustering(colors, 5);
+        var clusters = ColorAnalyzer.PerformKMeansClustering(colors, 5);
 
         // Should still work - some clusters may be empty and filtered out
         clusters.Should().NotBeEmpty();
@@ -279,16 +279,16 @@ public class ColorAnalysisTests
     [Fact]
     public void SelectBackgroundColor_AllDarkClusters_ReturnsAdjustedSecondCluster()
     {
-        var clusters = new List<CollageGenerator.ColorCluster>
+        var clusters = new List<ColorCluster>
         {
-            new CollageGenerator.ColorCluster
+            new ColorCluster
             {
                 CentroidR = 10,
                 CentroidG = 10,
                 CentroidB = 10,
                 Colors = CreateColorList(100, new Rgba32(10, 10, 10)),
             },
-            new CollageGenerator.ColorCluster
+            new ColorCluster
             {
                 CentroidR = 20,
                 CentroidG = 20,
@@ -297,7 +297,7 @@ public class ColorAnalysisTests
             },
         };
 
-        var result = CollageGenerator.SelectBackgroundColor(clusters);
+        var result = ColorAnalyzer.SelectBackgroundColor(clusters);
 
         // Second cluster centroid is (20,20,20) which is clamped to (60,60,60)
         var pixel = result.ToPixel<Rgba32>();
@@ -312,16 +312,16 @@ public class ColorAnalysisTests
     [Fact]
     public void SelectBackgroundColor_AllBrightClusters_ReturnsAdjustedSecondCluster()
     {
-        var clusters = new List<CollageGenerator.ColorCluster>
+        var clusters = new List<ColorCluster>
         {
-            new CollageGenerator.ColorCluster
+            new ColorCluster
             {
                 CentroidR = 250,
                 CentroidG = 250,
                 CentroidB = 250,
                 Colors = CreateColorList(100, new Rgba32(250, 250, 250)),
             },
-            new CollageGenerator.ColorCluster
+            new ColorCluster
             {
                 CentroidR = 240,
                 CentroidG = 240,
@@ -330,7 +330,7 @@ public class ColorAnalysisTests
             },
         };
 
-        var result = CollageGenerator.SelectBackgroundColor(clusters);
+        var result = ColorAnalyzer.SelectBackgroundColor(clusters);
 
         // Second cluster centroid is (240,240,240) clamped to (180,180,180)
         var pixel = result.ToPixel<Rgba32>();
@@ -345,9 +345,9 @@ public class ColorAnalysisTests
     [Fact]
     public void SelectBackgroundColor_SingleDarkCluster_ReturnsFallback()
     {
-        var clusters = new List<CollageGenerator.ColorCluster>
+        var clusters = new List<ColorCluster>
         {
-            new CollageGenerator.ColorCluster
+            new ColorCluster
             {
                 CentroidR = 5,
                 CentroidG = 5,
@@ -356,7 +356,7 @@ public class ColorAnalysisTests
             },
         };
 
-        var result = CollageGenerator.SelectBackgroundColor(clusters);
+        var result = ColorAnalyzer.SelectBackgroundColor(clusters);
 
         // With only one cluster that's too dark, falls to final fallback
         var pixel = result.ToPixel<Rgba32>();
@@ -371,16 +371,16 @@ public class ColorAnalysisTests
     [Fact]
     public void SelectBackgroundColor_MultipleClusters_SelectsLargestValidCluster()
     {
-        var clusters = new List<CollageGenerator.ColorCluster>
+        var clusters = new List<ColorCluster>
         {
-            new CollageGenerator.ColorCluster
+            new ColorCluster
             {
                 CentroidR = 80,
                 CentroidG = 120,
                 CentroidB = 60,
                 Colors = CreateColorList(30, new Rgba32(80, 120, 60)),
             },
-            new CollageGenerator.ColorCluster
+            new ColorCluster
             {
                 CentroidR = 150,
                 CentroidG = 100,
@@ -389,7 +389,7 @@ public class ColorAnalysisTests
             },
         };
 
-        var result = CollageGenerator.SelectBackgroundColor(clusters);
+        var result = ColorAnalyzer.SelectBackgroundColor(clusters);
 
         // The second cluster has more colors (70 > 30), so it's first after sort
         var pixel = result.ToPixel<Rgba32>();
@@ -407,7 +407,7 @@ public class ColorAnalysisTests
         // luminance = (0.299*128 + 0.587*128 + 0.114*128)/255 = 128/255 = ~0.502
         var midColor = Color.FromRgb(128, 128, 128);
 
-        var borderColor = CollageGenerator.GetBorderColor(midColor);
+        var borderColor = ColorAnalyzer.GetBorderColor(midColor);
 
         // 0.502 >= 0.5 so should return black
         var pixel = borderColor.ToPixel<Rgba32>();
@@ -425,7 +425,7 @@ public class ColorAnalysisTests
         // Pure red: luminance = (0.299*255 + 0.587*0 + 0.114*0)/255 = 76.245/255 ~= 0.299
         var red = Color.FromRgb(255, 0, 0);
 
-        var borderColor = CollageGenerator.GetBorderColor(red);
+        var borderColor = ColorAnalyzer.GetBorderColor(red);
 
         // 0.299 < 0.5 so white
         var pixel = borderColor.ToPixel<Rgba32>();
@@ -443,7 +443,7 @@ public class ColorAnalysisTests
         // Pure green: luminance = (0.299*0 + 0.587*255 + 0.114*0)/255 = 149.685/255 ~= 0.587
         var green = Color.FromRgb(0, 255, 0);
 
-        var borderColor = CollageGenerator.GetBorderColor(green);
+        var borderColor = ColorAnalyzer.GetBorderColor(green);
 
         // 0.587 >= 0.5 so black
         var pixel = borderColor.ToPixel<Rgba32>();

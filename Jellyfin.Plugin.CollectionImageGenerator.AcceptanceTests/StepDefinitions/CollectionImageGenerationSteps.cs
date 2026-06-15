@@ -23,7 +23,7 @@ public class CollectionImageGenerationSteps
     public void GivenACollectionHasItemsWithImages(int count)
     {
         _itemCount = count;
-        _positions = CollageGenerator.GetCustomPositions(count, 1000, 1500, 20);
+        _positions = LayoutCalculator.GetCustomPositions(count, 1000, 1500, 20);
     }
 
     /// <summary>

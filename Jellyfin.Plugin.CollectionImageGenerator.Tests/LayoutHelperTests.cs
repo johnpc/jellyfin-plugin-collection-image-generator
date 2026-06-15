@@ -19,7 +19,7 @@ public class LayoutHelperTests
     [Fact]
     public void Get3x3CellSize_StandardCanvas_ReturnsCorrectDimensions()
     {
-        var (width, height) = CollageGenerator.Get3x3CellSize(CanvasWidth, CanvasHeight, Padding);
+        var (width, height) = LayoutCalculator.Get3x3CellSize(CanvasWidth, CanvasHeight, Padding);
 
         // (1000 - (20*4)) / 3 = (1000 - 80) / 3 = 306
         width.Should().Be(306);
@@ -33,7 +33,7 @@ public class LayoutHelperTests
     [Fact]
     public void Get2x2CellSize_StandardCanvas_ReturnsCorrectDimensions()
     {
-        var (width, height) = CollageGenerator.Get2x2CellSize(CanvasWidth, CanvasHeight, Padding);
+        var (width, height) = LayoutCalculator.Get2x2CellSize(CanvasWidth, CanvasHeight, Padding);
 
         // (1000 - (20*3)) / 2 = (1000 - 60) / 2 = 470
         width.Should().Be(470);
@@ -47,7 +47,7 @@ public class LayoutHelperTests
     [Fact]
     public void Get3x3CellSize_ZeroPadding_UsesFullCanvas()
     {
-        var (width, height) = CollageGenerator.Get3x3CellSize(900, 900, 0);
+        var (width, height) = LayoutCalculator.Get3x3CellSize(900, 900, 0);
 
         width.Should().Be(300);
         height.Should().Be(300);
@@ -59,7 +59,7 @@ public class LayoutHelperTests
     [Fact]
     public void Get2x2CellSize_ZeroPadding_UsesFullCanvas()
     {
-        var (width, height) = CollageGenerator.Get2x2CellSize(800, 600, 0);
+        var (width, height) = LayoutCalculator.Get2x2CellSize(800, 600, 0);
 
         width.Should().Be(400);
         height.Should().Be(300);
@@ -71,7 +71,7 @@ public class LayoutHelperTests
     [Fact]
     public void GetCustomPositions_StandardGrid_CellsArePlacedCorrectly()
     {
-        var positions = CollageGenerator.GetCustomPositions(9, CanvasWidth, CanvasHeight, Padding);
+        var positions = LayoutCalculator.GetCustomPositions(9, CanvasWidth, CanvasHeight, Padding);
 
         positions.Should().HaveCount(9);
 
@@ -100,7 +100,7 @@ public class LayoutHelperTests
     [InlineData(9)]
     public void GetCustomPositions_AllCounts_NoOverlappingPositions(int count)
     {
-        var positions = CollageGenerator.GetCustomPositions(count, CanvasWidth, CanvasHeight, Padding);
+        var positions = LayoutCalculator.GetCustomPositions(count, CanvasWidth, CanvasHeight, Padding);
 
         // Check that all positions have valid dimensions
         foreach (var pos in positions)
@@ -127,7 +127,7 @@ public class LayoutHelperTests
     [InlineData(9)]
     public void GetCustomPositions_AllCounts_FitWithinCanvas(int count)
     {
-        var positions = CollageGenerator.GetCustomPositions(count, CanvasWidth, CanvasHeight, Padding);
+        var positions = LayoutCalculator.GetCustomPositions(count, CanvasWidth, CanvasHeight, Padding);
 
         foreach (var pos in positions)
         {
@@ -147,7 +147,7 @@ public class LayoutHelperTests
     [InlineData(100)]
     public void GetCustomPositions_LargeCounts_CapsAtNine(int count)
     {
-        var positions = CollageGenerator.GetCustomPositions(count, CanvasWidth, CanvasHeight, Padding);
+        var positions = LayoutCalculator.GetCustomPositions(count, CanvasWidth, CanvasHeight, Padding);
 
         positions.Should().HaveCount(9);
     }
@@ -158,8 +158,8 @@ public class LayoutHelperTests
     [Fact]
     public void Get3x3CellSize_LargerCanvas_ProducesLargerCells()
     {
-        var (width1, height1) = CollageGenerator.Get3x3CellSize(600, 900, 10);
-        var (width2, height2) = CollageGenerator.Get3x3CellSize(1200, 1800, 10);
+        var (width1, height1) = LayoutCalculator.Get3x3CellSize(600, 900, 10);
+        var (width2, height2) = LayoutCalculator.Get3x3CellSize(1200, 1800, 10);
 
         width2.Should().BeGreaterThan(width1);
         height2.Should().BeGreaterThan(height1);
@@ -171,7 +171,7 @@ public class LayoutHelperTests
     [Fact]
     public void GetCustomPositions_FourImages_ProducesTwoByTwoGrid()
     {
-        var positions = CollageGenerator.GetCustomPositions(4, CanvasWidth, CanvasHeight, Padding);
+        var positions = LayoutCalculator.GetCustomPositions(4, CanvasWidth, CanvasHeight, Padding);
 
         positions.Should().HaveCount(4);
 
@@ -189,7 +189,7 @@ public class LayoutHelperTests
     [Fact]
     public void GetCustomPositions_SingleImage_FillsCanvas()
     {
-        var positions = CollageGenerator.GetCustomPositions(1, CanvasWidth, CanvasHeight, Padding);
+        var positions = LayoutCalculator.GetCustomPositions(1, CanvasWidth, CanvasHeight, Padding);
 
         positions.Should().HaveCount(1);
         positions[0].X.Should().Be(Padding);

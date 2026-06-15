@@ -21,7 +21,7 @@ public class CollageGeneratorTests
     [Fact]
     public void GetCustomPositions_SingleImage_ReturnsOnePosition()
     {
-        var positions = CollageGenerator.GetCustomPositions(1, CanvasWidth, CanvasHeight, Padding);
+        var positions = LayoutCalculator.GetCustomPositions(1, CanvasWidth, CanvasHeight, Padding);
 
         positions.Should().HaveCount(1);
         positions[0].X.Should().Be(Padding);
@@ -36,7 +36,7 @@ public class CollageGeneratorTests
     [Fact]
     public void GetCustomPositions_TwoImages_ReturnsTwoPositions()
     {
-        var positions = CollageGenerator.GetCustomPositions(2, CanvasWidth, CanvasHeight, Padding);
+        var positions = LayoutCalculator.GetCustomPositions(2, CanvasWidth, CanvasHeight, Padding);
 
         positions.Should().HaveCount(2);
 
@@ -56,7 +56,7 @@ public class CollageGeneratorTests
     [Fact]
     public void GetCustomPositions_ThreeImages_ReturnsThreePositions()
     {
-        var positions = CollageGenerator.GetCustomPositions(3, CanvasWidth, CanvasHeight, Padding);
+        var positions = LayoutCalculator.GetCustomPositions(3, CanvasWidth, CanvasHeight, Padding);
 
         positions.Should().HaveCount(3);
     }
@@ -67,7 +67,7 @@ public class CollageGeneratorTests
     [Fact]
     public void GetCustomPositions_FourImages_ReturnsFourPositions()
     {
-        var positions = CollageGenerator.GetCustomPositions(4, CanvasWidth, CanvasHeight, Padding);
+        var positions = LayoutCalculator.GetCustomPositions(4, CanvasWidth, CanvasHeight, Padding);
 
         positions.Should().HaveCount(4);
     }
@@ -78,7 +78,7 @@ public class CollageGeneratorTests
     [Fact]
     public void GetCustomPositions_FiveImages_ReturnsFivePositions()
     {
-        var positions = CollageGenerator.GetCustomPositions(5, CanvasWidth, CanvasHeight, Padding);
+        var positions = LayoutCalculator.GetCustomPositions(5, CanvasWidth, CanvasHeight, Padding);
 
         positions.Should().HaveCount(5);
     }
@@ -89,7 +89,7 @@ public class CollageGeneratorTests
     [Fact]
     public void GetCustomPositions_SixImages_ReturnsSixPositions()
     {
-        var positions = CollageGenerator.GetCustomPositions(6, CanvasWidth, CanvasHeight, Padding);
+        var positions = LayoutCalculator.GetCustomPositions(6, CanvasWidth, CanvasHeight, Padding);
 
         positions.Should().HaveCount(6);
     }
@@ -100,7 +100,7 @@ public class CollageGeneratorTests
     [Fact]
     public void GetCustomPositions_SevenImages_ReturnsSevenPositions()
     {
-        var positions = CollageGenerator.GetCustomPositions(7, CanvasWidth, CanvasHeight, Padding);
+        var positions = LayoutCalculator.GetCustomPositions(7, CanvasWidth, CanvasHeight, Padding);
 
         positions.Should().HaveCount(7);
     }
@@ -111,7 +111,7 @@ public class CollageGeneratorTests
     [Fact]
     public void GetCustomPositions_EightImages_ReturnsEightPositions()
     {
-        var positions = CollageGenerator.GetCustomPositions(8, CanvasWidth, CanvasHeight, Padding);
+        var positions = LayoutCalculator.GetCustomPositions(8, CanvasWidth, CanvasHeight, Padding);
 
         positions.Should().HaveCount(8);
     }
@@ -125,7 +125,7 @@ public class CollageGeneratorTests
     [InlineData(15)]
     public void GetCustomPositions_NineOrMoreImages_ReturnsNinePositions(int count)
     {
-        var positions = CollageGenerator.GetCustomPositions(count, CanvasWidth, CanvasHeight, Padding);
+        var positions = LayoutCalculator.GetCustomPositions(count, CanvasWidth, CanvasHeight, Padding);
 
         positions.Should().HaveCount(9);
     }
@@ -145,7 +145,7 @@ public class CollageGeneratorTests
     [InlineData(9)]
     public void GetCustomPositions_AllCounts_PositionsHavePositiveDimensions(int count)
     {
-        var positions = CollageGenerator.GetCustomPositions(count, CanvasWidth, CanvasHeight, Padding);
+        var positions = LayoutCalculator.GetCustomPositions(count, CanvasWidth, CanvasHeight, Padding);
 
         foreach (var pos in positions)
         {
@@ -162,7 +162,7 @@ public class CollageGeneratorTests
     {
         var darkColor = Color.FromRgb(20, 20, 20);
 
-        var borderColor = CollageGenerator.GetBorderColor(darkColor);
+        var borderColor = ColorAnalyzer.GetBorderColor(darkColor);
 
         var pixel = borderColor.ToPixel<Rgba32>();
         pixel.R.Should().Be(255);
@@ -178,7 +178,7 @@ public class CollageGeneratorTests
     {
         var lightColor = Color.FromRgb(220, 220, 220);
 
-        var borderColor = CollageGenerator.GetBorderColor(lightColor);
+        var borderColor = ColorAnalyzer.GetBorderColor(lightColor);
 
         var pixel = borderColor.ToPixel<Rgba32>();
         pixel.R.Should().Be(0);
@@ -195,7 +195,7 @@ public class CollageGeneratorTests
         // Mid-gray with luminance > 0.5 due to green weighting
         var midColor = Color.FromRgb(128, 128, 128);
 
-        var borderColor = CollageGenerator.GetBorderColor(midColor);
+        var borderColor = ColorAnalyzer.GetBorderColor(midColor);
 
         // 128/255 = ~0.502, right at boundary - should be black (>= 0.5)
         var pixel = borderColor.ToPixel<Rgba32>();
@@ -208,9 +208,9 @@ public class CollageGeneratorTests
     [Fact]
     public void SelectBackgroundColor_EmptyClusters_ReturnsFallback()
     {
-        var clusters = new List<CollageGenerator.ColorCluster>();
+        var clusters = new List<ColorCluster>();
 
-        var result = CollageGenerator.SelectBackgroundColor(clusters);
+        var result = ColorAnalyzer.SelectBackgroundColor(clusters);
 
         var pixel = result.ToPixel<Rgba32>();
         pixel.R.Should().Be(45);
@@ -224,16 +224,16 @@ public class CollageGeneratorTests
     [Fact]
     public void SelectBackgroundColor_SkipsDarkClusters()
     {
-        var clusters = new List<CollageGenerator.ColorCluster>
+        var clusters = new List<ColorCluster>
         {
-            new CollageGenerator.ColorCluster
+            new ColorCluster
             {
                 CentroidR = 10,
                 CentroidG = 10,
                 CentroidB = 10,
                 Colors = CreateColorList(100, new Rgba32(10, 10, 10)),
             },
-            new CollageGenerator.ColorCluster
+            new ColorCluster
             {
                 CentroidR = 100,
                 CentroidG = 80,
@@ -242,7 +242,7 @@ public class CollageGeneratorTests
             },
         };
 
-        var result = CollageGenerator.SelectBackgroundColor(clusters);
+        var result = ColorAnalyzer.SelectBackgroundColor(clusters);
 
         var pixel = result.ToPixel<Rgba32>();
         pixel.R.Should().Be(100);
@@ -256,16 +256,16 @@ public class CollageGeneratorTests
     [Fact]
     public void SelectBackgroundColor_SkipsBrightClusters()
     {
-        var clusters = new List<CollageGenerator.ColorCluster>
+        var clusters = new List<ColorCluster>
         {
-            new CollageGenerator.ColorCluster
+            new ColorCluster
             {
                 CentroidR = 250,
                 CentroidG = 250,
                 CentroidB = 250,
                 Colors = CreateColorList(100, new Rgba32(250, 250, 250)),
             },
-            new CollageGenerator.ColorCluster
+            new ColorCluster
             {
                 CentroidR = 120,
                 CentroidG = 100,
@@ -274,7 +274,7 @@ public class CollageGeneratorTests
             },
         };
 
-        var result = CollageGenerator.SelectBackgroundColor(clusters);
+        var result = ColorAnalyzer.SelectBackgroundColor(clusters);
 
         var pixel = result.ToPixel<Rgba32>();
         pixel.R.Should().Be(120);

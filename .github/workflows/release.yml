@@ -40,6 +40,8 @@ jobs:
             --no-build
       - name: CRAP score check
         run: bash scripts/check-crap.sh coverage/coverage.json
+      - name: File line count check
+        run: bash scripts/check-line-count.sh 250
 
   build:
     needs: validate
