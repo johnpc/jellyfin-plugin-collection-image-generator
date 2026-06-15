@@ -1,23 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
-using Jellyfin.Plugin.CollectionImageGenerator.Configuration;
-using MediaBrowser.Controller.Collections;
+using Jellyfin.Plugin.CollectionImageGenerator.Services;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Controller.Providers;
-using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 
 namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
 {
@@ -28,22 +21,26 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
     {
         private readonly ILogger<CollectionImageGeneratorTask> _logger;
         private readonly ILibraryManager _libraryManager;
-        private readonly ICollectionManager _collectionManager;
+        private readonly ICollageGeneratorService _collageGeneratorService;
+        private readonly IImagePersistenceService _imagePersistenceService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CollectionImageGeneratorTask"/> class.
         /// </summary>
         /// <param name="logger">Instance of the <see cref="ILogger{CollectionImageGeneratorTask}"/> interface.</param>
         /// <param name="libraryManager">Instance of the <see cref="ILibraryManager"/> interface.</param>
-        /// <param name="collectionManager">Instance of the <see cref="ICollectionManager"/> interface.</param>
+        /// <param name="collageGeneratorService">Instance of the <see cref="ICollageGeneratorService"/> interface.</param>
+        /// <param name="imagePersistenceService">Instance of the <see cref="IImagePersistenceService"/> interface.</param>
         public CollectionImageGeneratorTask(
             ILogger<CollectionImageGeneratorTask> logger,
             ILibraryManager libraryManager,
-            ICollectionManager collectionManager)
+            ICollageGeneratorService collageGeneratorService,
+            IImagePersistenceService imagePersistenceService)
         {
             _logger = logger;
             _libraryManager = libraryManager;
-            _collectionManager = collectionManager;
+            _collageGeneratorService = collageGeneratorService;
+            _imagePersistenceService = imagePersistenceService;
         }
 
         /// <inheritdoc />
@@ -59,13 +56,12 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
         public string Category => "Library";
 
         /// <inheritdoc />
-        [ExcludeFromCodeCoverage]
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
         {
             _logger.LogInformation("Starting collection image generation task");
 
             var config = Plugin.Instance!.Configuration;
-            var collections = _libraryManager.GetItemList(new MediaBrowser.Controller.Entities.InternalItemsQuery
+            var collections = _libraryManager.GetItemList(new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { BaseItemKind.BoxSet },
             });
@@ -88,63 +84,14 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
                 {
                     var boxSet = (BoxSet)collection;
 
-                    // Check if collection already has an image
                     if (!string.IsNullOrEmpty(boxSet.PrimaryImagePath))
                     {
                         skippedCount++;
                     }
                     else
                     {
-                        _logger.LogInformation("Generating image for collection: {Name} (ID: {Id})", boxSet.Name, boxSet.Id);
-                        _logger.LogInformation("Collection path: {Path}", boxSet.Path);
-
-                        // Get items in the collection
-                        var collectionItems = boxSet.GetLinkedChildren().ToList();
-                        _logger.LogInformation("Collection {Name} has {Count} items", boxSet.Name, collectionItems.Count);
-
-                        var itemsWithImages = collectionItems
-                            .Where(i => !string.IsNullOrEmpty(i.PrimaryImagePath) && File.Exists(i.PrimaryImagePath))
-                            .ToList();
-
-                        _logger.LogInformation("Collection {Name} has {Count} items with valid images", boxSet.Name, itemsWithImages.Count);
-
-                        if (itemsWithImages.Count > 0)
-                        {
-                            // Log the first few items with their image paths
-                            foreach (var item in itemsWithImages.Take(3))
-                            {
-                                _logger.LogInformation(
-                                    "Item in collection: {ItemName}, Image path: {ImagePath}",
-                                    item.Name,
-                                    item.PrimaryImagePath);
-                            }
-
-                            // Take a sample of items for the collage
-                            var sampleSize = Math.Min(config.MaxImagesInCollage, itemsWithImages.Count);
-                            var sampleItems = itemsWithImages
-                                .OrderBy(_ => Guid.NewGuid()) // Randomize the order
-                                .Take(sampleSize)
-                                .ToList();
-
-                            // Pad to at least 4 items by duplicating posters to avoid stretched images
-                            while (sampleItems.Count > 1 && sampleItems.Count < 4)
-                            {
-                                sampleItems.Add(sampleItems[sampleItems.Count % itemsWithImages.Count]);
-                            }
-
-                            _logger.LogInformation(
-                                "Selected {Count} items for collage in collection {Name}",
-                                sampleItems.Count,
-                                boxSet.Name);
-
-                            // Generate and save the collage
-                            await GenerateAndSaveCollageAsync(boxSet, sampleItems, cancellationToken).ConfigureAwait(false);
-                            generatedCount++;
-                        }
-                        else
-                        {
-                            _logger.LogInformation("No items with images found in collection: {Name}", boxSet.Name);
-                        }
+                        await GenerateImageForCollectionAsync(boxSet, config.MaxImagesInCollage, cancellationToken).ConfigureAwait(false);
+                        generatedCount++;
                     }
                 }
                 catch (Exception ex)
@@ -164,255 +111,81 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Tasks
         }
 
         /// <inheritdoc />
-        [ExcludeFromCodeCoverage]
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
         {
             var config = Plugin.Instance!.Configuration;
 
-            if (config.EnableScheduledTask)
+            if (!config.EnableScheduledTask)
             {
-                // Parse the time of day from configuration
-                if (TimeSpan.TryParse(config.ScheduledTaskTimeOfDay, out var time))
+                yield break;
+            }
+
+            if (TimeSpan.TryParse(config.ScheduledTaskTimeOfDay, out var time))
+            {
+                yield return new TaskTriggerInfo
                 {
-                    yield return new TaskTriggerInfo
-                    {
-                        Type = TaskTriggerInfoType.DailyTrigger,
-                        TimeOfDayTicks = time.Ticks,
-                    };
-                }
-                else
+                    Type = TaskTriggerInfoType.DailyTrigger,
+                    TimeOfDayTicks = time.Ticks,
+                };
+            }
+            else
+            {
+                yield return new TaskTriggerInfo
                 {
-                    // Default to 3 AM if parsing fails
-                    yield return new TaskTriggerInfo
-                    {
-                        Type = TaskTriggerInfoType.DailyTrigger,
-                        TimeOfDayTicks = TimeSpan.FromHours(3).Ticks,
-                    };
-                }
+                    Type = TaskTriggerInfoType.DailyTrigger,
+                    TimeOfDayTicks = TimeSpan.FromHours(3).Ticks,
+                };
             }
         }
 
         /// <summary>
-        /// Calculates grid dimensions (rows, cols) for a given image count.
+        /// Selects sample items from a collection for collage generation.
         /// </summary>
-        /// <param name="count">The number of images.</param>
-        /// <returns>A tuple of (rows, cols) representing grid dimensions.</returns>
-        internal static (int Rows, int Cols) GetGridDimensions(int count)
+        /// <param name="itemsWithImages">Items that have valid primary images.</param>
+        /// <param name="maxImages">Maximum number of images to include.</param>
+        /// <returns>The selected items for the collage.</returns>
+        internal static List<BaseItem> SelectSampleItems(List<BaseItem> itemsWithImages, int maxImages)
         {
-            return count switch
+            var sampleSize = Math.Min(maxImages, itemsWithImages.Count);
+            var sampleItems = itemsWithImages
+                .OrderBy(_ => Guid.NewGuid())
+                .Take(sampleSize)
+                .ToList();
+
+            while (sampleItems.Count > 1 && sampleItems.Count < 4)
             {
-                1 => (1, 1),
-                2 => (1, 2),
-                3 => (1, 3),
-                4 => (2, 2),
-                5 => (2, 3),
-                6 => (2, 3),
-                7 => (3, 3),
-                8 => (3, 3),
-                9 => (3, 3),
-                _ => (3, 3),
-            };
+                sampleItems.Add(sampleItems[sampleItems.Count % itemsWithImages.Count]);
+            }
+
+            return sampleItems;
         }
 
-        [ExcludeFromCodeCoverage]
-        private async Task GenerateAndSaveCollageAsync(BoxSet collection, List<BaseItem> items, CancellationToken cancellationToken)
+        private async Task GenerateImageForCollectionAsync(BoxSet boxSet, int maxImages, CancellationToken cancellationToken)
         {
-            try
+            _logger.LogInformation("Generating image for collection: {Name}", boxSet.Name);
+
+            var collectionItems = boxSet.GetLinkedChildren().ToList();
+            var itemsWithImages = collectionItems
+                .Where(i => !string.IsNullOrEmpty(i.PrimaryImagePath) && File.Exists(i.PrimaryImagePath))
+                .ToList();
+
+            _logger.LogDebug("Collection {Name} has {Total} items, {WithImages} with valid images", boxSet.Name, collectionItems.Count, itemsWithImages.Count);
+
+            if (itemsWithImages.Count == 0)
             {
-                // Determine the layout based on the number of images
-                var imageCount = items.Count;
-                var (rows, cols) = GetGridDimensions(imageCount);
-
-                _logger.LogInformation(
-                    "Creating collage with {Count} images in a {Rows}x{Cols} grid for collection {Name}",
-                    imageCount,
-                    rows,
-                    cols,
-                    collection.Name);
-
-                // Create a new image with appropriate dimensions
-                const int targetWidth = 1000;
-                const int targetHeight = 1500;
-
-                _logger.LogInformation("Creating output image with dimensions {Width}x{Height}", targetWidth, targetHeight);
-
-                using var outputImage = new Image<Rgba32>(targetWidth, targetHeight);
-
-                // Calculate the size of each poster in the grid
-                var posterWidth = targetWidth / cols;
-                var posterHeight = targetHeight / rows;
-
-                _logger.LogInformation("Each poster will be sized {Width}x{Height}", posterWidth, posterHeight);
-
-                // Load and place each poster image
-                for (var i = 0; i < imageCount; i++)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        return;
-                    }
-
-                    var item = items[i];
-                    var row = i / cols;
-                    var col = i % cols;
-
-                    try
-                    {
-                        _logger.LogInformation("Loading image for item {ItemName} from {Path}", item.Name, item.PrimaryImagePath);
-
-                        using var posterImage = await Image.LoadAsync<Rgba32>(item.PrimaryImagePath, cancellationToken).ConfigureAwait(false);
-
-                        // Resize the poster to fit in the grid
-                        posterImage.Mutate(x => x.Resize(posterWidth, posterHeight));
-
-                        // Calculate position
-                        var x = col * posterWidth;
-                        var y = row * posterHeight;
-
-                        _logger.LogInformation("Placing image for {ItemName} at position ({X},{Y})", item.Name, x, y);
-
-                        // Draw the poster onto the output image
-                        outputImage.Mutate(ctx => ctx.DrawImage(posterImage, new Point(x, y), 1f));
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error processing image for item {Name}", item.Name);
-                    }
-                }
-
-                // First save the collage to a temporary file
-                var tempFile = Path.Combine(Path.GetTempPath(), $"collage_{collection.Id}.jpg");
-                _logger.LogInformation("Saving temporary collage to {Path}", tempFile);
-                await outputImage.SaveAsJpegAsync(tempFile, cancellationToken).ConfigureAwait(false);
-
-                if (File.Exists(tempFile))
-                {
-                    _logger.LogInformation("Temporary collage file successfully created at {Path}", tempFile);
-
-                    try
-                    {
-                        // Save to the file system first
-                        var directory = collection.Path;
-                        var filename = $"folder{Path.DirectorySeparatorChar}poster.jpg";
-                        var outputPath = Path.Combine(directory, filename);
-
-                        _logger.LogInformation("Saving collage to file system at {Path}", outputPath);
-
-                        // Ensure the directory exists
-                        var folderPath = Path.GetDirectoryName(outputPath);
-                        Directory.CreateDirectory(folderPath!);
-
-                        // Copy the temp file to the final location
-                        File.Copy(tempFile, outputPath, true);
-
-                        // Use Jellyfin's provider manager to set the image
-                        _logger.LogInformation("Setting primary image for collection {Name} using provider manager", collection.Name);
-
-                        // Read the image file into a byte array
-                        byte[] imageBytes = await File.ReadAllBytesAsync(tempFile, cancellationToken).ConfigureAwait(false);
-
-                        // Set the image using the provider manager
-                        await SetCollectionImageAsync(collection, imageBytes, cancellationToken).ConfigureAwait(false);
-
-                        // Force a refresh of the collection
-                        _logger.LogInformation("Refreshing metadata for collection {Name}", collection.Name);
-                        await collection.RefreshMetadata(cancellationToken).ConfigureAwait(false);
-
-                        // Try to force the collection to reload its images
-                        _logger.LogInformation("Forcing image refresh for collection {Name}", collection.Name);
-                        await collection.UpdateToRepositoryAsync(ItemUpdateType.ImageUpdate, cancellationToken).ConfigureAwait(false);
-
-                        _logger.LogInformation("Successfully generated and set collage for collection: {Name}", collection.Name);
-
-                        // Clean up the temp file
-                        try
-                        {
-                            File.Delete(tempFile);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "Failed to delete temporary file {Path}", tempFile);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Error setting image for collection {Name}", collection.Name);
-                    }
-                }
-                else
-                {
-                    _logger.LogError("Failed to create temporary collage file at {Path}", tempFile);
-                }
+                _logger.LogInformation("No items with images found in collection: {Name}", boxSet.Name);
+                return;
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error generating collage for collection {Name}", collection.Name);
-            }
-        }
 
-        [ExcludeFromCodeCoverage]
-        private async Task SetCollectionImageAsync(BoxSet collection, byte[] imageData, CancellationToken cancellationToken)
-        {
-            try
-            {
-                _logger.LogInformation("Setting primary image for collection {Name} (ID: {Id})", collection.Name, collection.Id);
+            var sampleItems = SelectSampleItems(itemsWithImages, maxImages);
+            var imagePaths = sampleItems.Select(i => i.PrimaryImagePath!).ToList();
 
-                // Save the image to the standard location
-                var directory = collection.Path;
-                var filename = $"folder{Path.DirectorySeparatorChar}poster.jpg";
-                var outputPath = Path.Combine(directory, filename);
+            _logger.LogDebug("Selected {Count} items for collage in collection {Name}", sampleItems.Count, boxSet.Name);
 
-                // Ensure the directory exists
-                var folderPath = Path.GetDirectoryName(outputPath);
-                Directory.CreateDirectory(folderPath!);
+            using var collageStream = await _collageGeneratorService.GenerateCollageAsync(imagePaths, cancellationToken).ConfigureAwait(false);
+            await _imagePersistenceService.SaveCollectionImageAsync(boxSet, collageStream, cancellationToken).ConfigureAwait(false);
 
-                // Save the image
-                await File.WriteAllBytesAsync(outputPath, imageData, cancellationToken).ConfigureAwait(false);
-
-                _logger.LogInformation("Saved image to {Path}", outputPath);
-
-                collection.SetImage(
-                    new ItemImageInfo
-                    {
-                        Path = outputPath,
-                        Type = ImageType.Primary,
-                    }, 0);
-
-                await _libraryManager.UpdateItemAsync(
-                    collection,
-                    collection.GetParent(),
-                    ItemUpdateType.ImageUpdate,
-                    CancellationToken.None).ConfigureAwait(false);
-
-                // Force a refresh of the collection
-                _logger.LogInformation("Refreshing metadata for collection {Name}", collection.Name);
-
-                // First, try to clear any existing image cache
-                try
-                {
-                    // We can't directly set PrimaryImagePath as it's read-only
-                    // Instead, force a metadata refresh and image update
-                    await collection.RefreshMetadata(cancellationToken).ConfigureAwait(false);
-                    _logger.LogInformation("Refreshed metadata");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Error refreshing metadata, continuing anyway");
-                }
-
-                // Force image update
-                await collection.UpdateToRepositoryAsync(ItemUpdateType.ImageUpdate, cancellationToken).ConfigureAwait(false);
-
-                // Additional image refresh to ensure it's picked up
-                await collection.UpdateToRepositoryAsync(ItemUpdateType.MetadataImport, cancellationToken).ConfigureAwait(false);
-
-                _logger.LogInformation("Successfully set primary image for collection {Name}", collection.Name);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error setting primary image for collection {Name}", collection.Name);
-                throw;
-            }
+            _logger.LogInformation("Successfully generated collage for collection: {Name}", boxSet.Name);
         }
     }
 }
