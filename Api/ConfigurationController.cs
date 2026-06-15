@@ -1,7 +1,7 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
 using Jellyfin.Plugin.CollectionImageGenerator.Configuration;
-using MediaBrowser.Common.Configuration;
+using MediaBrowser.Common.Api;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,19 +13,9 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Api
     [ExcludeFromCodeCoverage]
     [ApiController]
     [Route("Plugins/CollectionImageGenerator/Configuration")]
+    [Authorize(Policy = Policies.RequiresElevation)]
     public class ConfigurationController : ControllerBase
     {
-        private readonly IConfigurationManager _configurationManager;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ConfigurationController"/> class.
-        /// </summary>
-        /// <param name="configurationManager">Instance of the <see cref="IConfigurationManager"/> interface.</param>
-        public ConfigurationController(IConfigurationManager configurationManager)
-        {
-            _configurationManager = configurationManager;
-        }
-
         /// <summary>
         /// Gets the plugin configuration.
         /// </summary>
@@ -52,10 +42,7 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.Api
                 return BadRequest("Plugin instance is not available");
             }
 
-            // Update the plugin configuration
             Plugin.Instance.Configuration = configuration;
-
-            // Save the configuration directly using the plugin's SaveConfiguration method
             Plugin.Instance.SaveConfiguration();
 
             return NoContent();

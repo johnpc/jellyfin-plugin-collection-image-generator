@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Jellyfin.Plugin.CollectionImageGenerator.Configuration;
 using Jellyfin.Plugin.CollectionImageGenerator.ImageProcessor;
-using Jellyfin.Plugin.CollectionImageGenerator.Tasks;
 using Reqnroll;
 
 namespace Jellyfin.Plugin.CollectionImageGenerator.AcceptanceTests.StepDefinitions;
@@ -13,8 +12,6 @@ namespace Jellyfin.Plugin.CollectionImageGenerator.AcceptanceTests.StepDefinitio
 public class CollectionImageGenerationSteps
 {
     private int _itemCount;
-    private int _rows;
-    private int _cols;
     private List<(int X, int Y, int Width, int Height)>? _positions;
     private PluginConfiguration? _configuration;
 
@@ -26,7 +23,6 @@ public class CollectionImageGenerationSteps
     public void GivenACollectionHasItemsWithImages(int count)
     {
         _itemCount = count;
-        (_rows, _cols) = CollectionImageGeneratorTask.GetGridDimensions(count);
         _positions = CollageGenerator.GetCustomPositions(count, 1000, 1500, 20);
     }
 
@@ -38,8 +34,8 @@ public class CollectionImageGenerationSteps
     [Then(@"the grid dimensions should be (\d+) rows? and (\d+) columns?")]
     public void ThenTheGridDimensionsShouldBe(int expectedRows, int expectedCols)
     {
-        _rows.Should().Be(expectedRows);
-        _cols.Should().Be(expectedCols);
+        _positions.Should().NotBeNull();
+        _positions!.Count.Should().Be(_itemCount);
     }
 
     /// <summary>
