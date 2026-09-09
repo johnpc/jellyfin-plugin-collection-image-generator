@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: '10.0.x'
       - name: Restore
         run: dotnet restore jellyfin-plugin-collection-image-generator.sln
       - name: Check formatting
@@ -64,7 +64,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 9.0.x
+        dotnet-version: 10.0.x
 
     - name: Restore dependencies
       run: dotnet restore Jellyfin.Plugin.CollectionImageGenerator.csproj
@@ -82,10 +82,10 @@ jobs:
       run: |
         VERSION=${{ steps.get_version.outputs.VERSION }}
         mkdir -p release
-        cp bin/Release/net9.0/Jellyfin.Plugin.CollectionImageGenerator.dll release/
-        cp bin/Release/net9.0/SixLabors.ImageSharp.dll release/
-        cp bin/Release/net9.0/SixLabors.ImageSharp.Drawing.dll release/
-        cp bin/Release/net9.0/SixLabors.Fonts.dll release/
+        cp bin/Release/net10.0/Jellyfin.Plugin.CollectionImageGenerator.dll release/
+        cp bin/Release/net10.0/SixLabors.ImageSharp.dll release/
+        cp bin/Release/net10.0/SixLabors.ImageSharp.Drawing.dll release/
+        cp bin/Release/net10.0/SixLabors.Fonts.dll release/
         cd release
         zip -r ../collection-image-generator-${VERSION}.zip .
 
@@ -114,7 +114,7 @@ jobs:
               {
                 "version": "${VERSION}",
                 "changelog": "See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/${VERSION})",
-                "targetAbi": "10.11.0.0",
+                "targetAbi": "12.0.0.0",
                 "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/${VERSION}/collection-image-generator-${VERSION}.zip",
                 "checksum": "${CHECKSUM}",
                 "timestamp": "${TIMESTAMP}"

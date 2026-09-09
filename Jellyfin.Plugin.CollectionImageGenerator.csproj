@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Jellyfin.Plugin.CollectionImageGenerator</RootNamespace>
     <Version>0.0.0.1</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
@@ -12,7 +12,13 @@
     <AnalysisMode>AllEnabledByDefault</AnalysisMode>
     <CodeAnalysisRuleSet>jellyfin.ruleset</CodeAnalysisRuleSet>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <NoWarn>NU1902;NU1903</NoWarn>
+    <!-- CA1873: AnalysisLevel tracks TargetFramework, so the net10.0 bump for Jellyfin 12.0 newly
+         enables this rule. It flags every non-constant logging argument (e.g. `boxSet.Name`,
+         `collectionItems.Count`) as "possibly expensive", including the trivial property/local
+         accesses used throughout this project's structured logging calls. None of them are
+         actually expensive, so it is suppressed rather than wrapping every log statement in an
+         IsEnabled() guard. -->
+    <NoWarn>NU1902;NU1903;CA1873</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,8 +27,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jellyfin.Controller" Version="10.11.0" />
-    <PackageReference Include="Jellyfin.Model" Version="10.11.0" />
+    <PackageReference Include="Jellyfin.Controller" Version="12.0.0" />
+    <PackageReference Include="Jellyfin.Model" Version="12.0.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="2.1.4" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" PrivateAssets="all" />
