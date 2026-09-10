@@ -46,6 +46,9 @@ dotnet_naming_style.pascal_case_style.capitalization = pascal_case
 
 # Code quality
 dotnet_diagnostic.CA1848.severity = suggestion
+# CA1873 (new in .NET 10) demands guarded/source-generated logging; consistent with the
+# CA1848 decision above, this plugin intentionally uses plain ILogger template calls.
+dotnet_diagnostic.CA1873.severity = suggestion
 dotnet_diagnostic.CA1062.severity = suggestion
 dotnet_diagnostic.CA1002.severity = suggestion
 dotnet_diagnostic.CA1724.severity = none
