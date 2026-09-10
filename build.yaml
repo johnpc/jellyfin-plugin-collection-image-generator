@@ -1,0 +1,17 @@
+---
+# Jellyfin plugin build metadata.
+# targetAbi here is the SINGLE SOURCE OF TRUTH for the minimum Jellyfin
+# server version — release.yml reads it when generating the manifest entry.
+name: "Collection Image Generator"
+guid: "e29b0e3d-f15e-47b9-9b3d-ed3df892e33d"
+targetAbi: "12.0.0.0"
+framework: "net10.0"
+owner: "johnpc"
+category: "Metadata"
+overview: "Automatically generates collage images for collections without images"
+description: "A Jellyfin plugin that automatically generates collage images for collections without images."
+artifacts:
+  - "Jellyfin.Plugin.CollectionImageGenerator.dll"
+  - "SixLabors.ImageSharp.dll"
+  - "SixLabors.ImageSharp.Drawing.dll"
+  - "SixLabors.Fonts.dll"

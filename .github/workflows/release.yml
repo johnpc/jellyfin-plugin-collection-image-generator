@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "manifest.json"
+      - "**.md"
 
 permissions:
   contents: write
@@ -96,33 +99,76 @@ jobs:
         CHECKSUM=$(md5sum collection-image-generator-${VERSION}.zip | awk '{ print $1 }')
         echo "CHECKSUM=$CHECKSUM" >> $GITHUB_OUTPUT
 
-    - name: Generate manifest.json
+    - name: Update manifest.json (prepend new version)
+      env:
+        VERSION: ${{ steps.get_version.outputs.VERSION }}
+        CHECKSUM: ${{ steps.calculate_checksum.outputs.CHECKSUM }}
+      run: |
+        # targetAbi single source of truth: build.yaml
+        TARGET_ABI=$(grep -E '^targetAbi:' build.yaml | head -1 | sed -E 's/^targetAbi:[[:space:]]*"?([0-9.]+)"?.*/\1/')
+        if [ -z "$TARGET_ABI" ]; then
+          echo "::error::targetAbi not found in build.yaml"
+          exit 1
+        fi
+        export TARGET_ABI
+        python3 << 'PYEOF'
+        import json, os, sys
+        from datetime import datetime, timezone
+
+        version = os.environ["VERSION"]
+        checksum = os.environ["CHECKSUM"]
+        target_abi = os.environ["TARGET_ABI"]
+        repo = "johnpc/jellyfin-plugin-collection-image-generator"
+
+        # Git checkout is the source of truth for the existing manifest.
+        # NEVER fetch the previous manifest over the network.
+        if not os.path.exists("manifest.json"):
+            print("::warning::manifest.json MISSING from checkout -- starting from an "
+                  "EMPTY manifest. All historical version entries will be absent!")
+            manifest = [{
+                "guid": "e29b0e3d-f15e-47b9-9b3d-ed3df892e33d",
+                "name": "Collection Image Generator",
+                "overview": "Automatically generates collage images for collections without images",
+                "description": "A Jellyfin plugin that automatically generates collage images for collections without images.",
+                "owner": "johnpc",
+                "category": "Metadata",
+                "versions": [],
+            }]
+        else:
+            try:
+                with open("manifest.json", encoding="utf-8") as f:
+                    manifest = json.load(f)
+            except json.JSONDecodeError as e:
+                print(f"::error::existing manifest.json is invalid JSON: {e}")
+                sys.exit(1)
+
+        plugin = manifest[0]
+        entry = {
+            "version": version,
+            "changelog": f"https://github.com/{repo}/releases/tag/{version}",
+            "targetAbi": target_abi,
+            "sourceUrl": f"https://github.com/{repo}/releases/download/{version}/collection-image-generator-{version}.zip",
+            "checksum": checksum,
+            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+        # Dedupe by version (new wins); existing entries are preserved untouched.
+        versions = [v for v in plugin["versions"] if v.get("version") != version]
+        versions.append(entry)
+        versions.sort(key=lambda v: tuple(int(x) for x in v["version"].split(".")), reverse=True)
+        plugin["versions"] = versions
+
+        with open("manifest.json", "w", encoding="utf-8") as f:
+            json.dump(manifest, f, indent=2)
+            f.write("\n")
+        print(f"manifest.json now has {len(versions)} version entries; newest {versions[0]['version']}")
+        PYEOF
+
+    - name: Validate manifest.json
       run: |
         VERSION=${{ steps.get_version.outputs.VERSION }}
-        CHECKSUM=${{ steps.calculate_checksum.outputs.CHECKSUM }}
-        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-        cat > manifest.json << EOF
-        [
-          {
-            "guid": "e29b0e3d-f15e-47b9-9b3d-ed3df892e33d",
-            "name": "Collection Image Generator",
-            "overview": "Automatically generates collage images for collections without images",
-            "description": "A Jellyfin plugin that automatically generates collage images for collections without images.",
-            "owner": "johnpc",
-            "category": "Metadata",
-            "versions": [
-              {
-                "version": "${VERSION}",
-                "changelog": "See the full changelog at [GitHub](https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/tag/${VERSION})",
-                "targetAbi": "12.0.0.0",
-                "sourceUrl": "https://github.com/johnpc/jellyfin-plugin-collection-image-generator/releases/download/${VERSION}/collection-image-generator-${VERSION}.zip",
-                "checksum": "${CHECKSUM}",
-                "timestamp": "${TIMESTAMP}"
-              }
-            ]
-          }
-        ]
-        EOF
+        python3 scripts/validate-manifest.py \
+          --new-version "$VERSION" \
+          --zip "collection-image-generator-${VERSION}.zip"
 
     - name: Create tag and GitHub Release
       run: |
@@ -146,10 +192,27 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Verify published release asset matches manifest
+      run: |
+        VERSION=${{ steps.get_version.outputs.VERSION }}
+        SOURCE_URL=$(python3 -c "import json; print(json.load(open('manifest.json'))[0]['versions'][0]['sourceUrl'])")
+        EXPECTED=$(python3 -c "import json; print(json.load(open('manifest.json'))[0]['versions'][0]['checksum'])")
+        echo "Downloading published asset: $SOURCE_URL"
+        curl -sSL --fail --retry 5 --retry-delay 5 --retry-all-errors -o published.zip "$SOURCE_URL"
+        ACTUAL=$(md5sum published.zip | awk '{ print $1 }')
+        if [ "$ACTUAL" != "$EXPECTED" ]; then
+          echo "::error::Published asset md5 ($ACTUAL) does not match manifest checksum ($EXPECTED)"
+          exit 1
+        fi
+        echo "Published asset verified: md5 $ACTUAL matches manifest entry for $VERSION"
+
     - name: Update manifest on main
       run: |
+        cp manifest.json /tmp/manifest.json
+        git checkout -- manifest.json
         git fetch origin main
-        git checkout main
+        git checkout -B main origin/main
+        cp /tmp/manifest.json manifest.json
         git add manifest.json
-        git commit -m "chore: update manifest for ${{ steps.get_version.outputs.VERSION }}" || true
+        git diff --cached --quiet || git commit -m "chore: update manifest for ${{ steps.get_version.outputs.VERSION }}"
         git push origin main
